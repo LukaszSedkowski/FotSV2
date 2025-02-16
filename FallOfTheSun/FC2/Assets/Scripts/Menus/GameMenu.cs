@@ -17,6 +17,7 @@ public class GameMenu : MonoBehaviour
     public GameObject characterButtonPrefab;
     public Button startGameButton;
 
+    public TMP_Text validationText;
     private int playerCount;
     private int pawnCount;
     private int currentPlayer = 0;
@@ -51,12 +52,34 @@ public class GameMenu : MonoBehaviour
     }
     public void GuestPlay()
     {
-        if (selectedCharacters != null)
+        // Sprawdzenie czy lista wybranych postaci zosta³a zainicjowana i czy ka¿dy gracz wybra³ wystarczaj¹c¹ liczbê postaci
+        if (selectedCharacters == null || selectedCharacters.Count == 0)
         {
-            DisableCamera();
-            SceneManager.LoadScene(1);
+            validationText.text = "Najpierw wybierz postacie, aby zacz¹æ grê!";
+            return;
         }
+
+        foreach (var playerSelection in selectedCharacters)
+        {
+            if (playerSelection.Count < pawnCount)
+            {
+                validationText.text = "Najpierw wybierz postacie, aby zacz¹æ grê!";
+                return;
+            }
+        }
+
+        // Jeœli walidacja przesz³a, czyœcimy komunikat i rozpoczynamy grê
+        validationText.text = "";
+        DisableCamera();
+        SceneManager.LoadScene(1);
     }
+
+    public void Exit()
+    {
+        Menus.Instance.gameMenu.SetActive(false);
+        Menus.Instance.mainMenu.SetActive(true);
+    }
+
     void DisableCamera()
     {
         Camera cameraToDisable = GameObject.Find("Main Camera").GetComponent<Camera>();

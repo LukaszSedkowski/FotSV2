@@ -42,9 +42,23 @@ public class ChessBoard : MonoBehaviour
     private int currentTeam = 0; // Aktualna drużyna (zaczynamy od drużyny 0)
     private int numberOfTeams; // Przykładowo, ustawiamy na 4 drużyny
 
+    public static ChessBoard Instance { get; private set; }
+
+    private static readonly Dictionary<ChessPieceType, float> groundOffsets = new Dictionary<ChessPieceType, float>
+    {
+        { ChessPieceType.Ogre, 1.5f },
+        { ChessPieceType.Hunter, 1.5f },
+        { ChessPieceType.Priestess, 1.5f },
+        { ChessPieceType.Skeleton, 1.5f },
+        { ChessPieceType.Dog, 1f },
+        { ChessPieceType.Knight, 1f },
+        { ChessPieceType.Werewolf, 1f },
+        { ChessPieceType.Vampir, 1f }
+    };
+
     private void Awake()
     {
-
+        Instance = this;
         numberOfTeams = teamMaterials.Length;
         GenerateAllTiles(tileSize, Tile_Count_X, Tile_Count_Y);
         InitializeTileHeights();
@@ -124,7 +138,7 @@ public class ChessBoard : MonoBehaviour
                     bool validMove = MoveTo(currentlyDragging, hitPosition.x, hitPosition.y);
                     if (!validMove)
                     {
-                        currentlyDragging.transform.position = GetTileCenter(previousPosition.x, previousPosition.y);
+                        currentlyDragging.transform.position = GetTileCenter(previousPosition.x, previousPosition.y, currentlyDragging);
                     }
                 }
             }
@@ -335,7 +349,7 @@ public class ChessBoard : MonoBehaviour
                 float tileHeight = tileHeights[x, y];
 
                 // Uzyskujemy pozycję kafelka i ustawiamy wysokość przeszkody
-                Vector3 position = GetTileCenter(x, y);
+                Vector3 position = GetTileCenter(x, y, currentlyDragging);
                 position.y = tileHeight + 1.0f; // Ustawienie wysokości przeszkody zgodnie z wysokością kafelka
 
                 // Debugowanie pozycji
@@ -422,16 +436,6 @@ public class ChessBoard : MonoBehaviour
             }
         }
     }
-
-
-
-
-
-
-
-
-
-
 
     private void ResetTileColors()
     {
@@ -528,9 +532,6 @@ public class ChessBoard : MonoBehaviour
         }
     }
 
-
-
-
     private void InitializeTileHeights()
     {
         tileHeights = new float[Tile_Count_X, Tile_Count_Y];
@@ -570,9 +571,6 @@ public class ChessBoard : MonoBehaviour
             Debug.Log("Brak pionków dla drużyny " + team);
         }
     }
-
-
-
 
     private bool FindPath(ChessPieces cp, int startX, int startY, int targetX, int targetY, int remainingMoves, bool[,] visited, ref int shortestCost, out List<Vector2Int> path)
     {
@@ -627,11 +625,6 @@ public class ChessBoard : MonoBehaviour
 
         return false;
     }
-
-
-
-
-
 
     private bool MoveTo(ChessPieces cp, int targetX, int targetY)
     {
@@ -690,7 +683,7 @@ public class ChessBoard : MonoBehaviour
             Vector2Int nextPos = path[i];
 
             // Oblicz pozycję docelową
-            Vector3 targetPosition = GetTileCenter(nextPos.x, nextPos.y);
+            Vector3 targetPosition = GetTileCenter(nextPos.x, nextPos.y, cp);
             float elapsedTime = 0f;
 
             while (elapsedTime < moveDuration)
@@ -706,7 +699,8 @@ public class ChessBoard : MonoBehaviour
             // Przejdź do następnego punktu
             startPosition = targetPosition;
         }
-
+        // Po zakończeniu animacji popraw pozycję pionka za pomocą bounding boxa
+        PositionSinglePiece(cp.currentX, cp.currentY);
         // Po zakończeniu ruchu, zaktualizuj planszę
         Debug.Log($"Pionek dotarł na {path[path.Count - 1]}. Aktualizacja pozycji na planszy.");
     }
@@ -720,7 +714,7 @@ public class ChessBoard : MonoBehaviour
 
         // Pobierz aktualną pozycję pionka na planszy
         Vector3 startPosition = cp.transform.position;
-        Vector3 targetPosition = GetTileCenter(targetPos.x, targetPos.y); // Funkcja, która zwraca środek kafelka
+        Vector3 targetPosition = GetTileCenter(targetPos.x, targetPos.y, cp); // Funkcja, która zwraca środek kafelka
 
         // Animuj ruch pionka
         while (elapsedTime < moveDuration)
@@ -741,9 +735,6 @@ public class ChessBoard : MonoBehaviour
         // Po zakończeniu animacji, możesz również zaktualizować inne elementy, jak np. punkty ruchu
         Debug.Log($"Pionek dotarł na ({targetPos.x}, {targetPos.y}).");
     }
-
-
-
 
     private void SelectPieceById(int id, int teamId)
     {
@@ -828,10 +819,6 @@ public class ChessBoard : MonoBehaviour
         }
     }
 
-
-
-
-
     private GameObject GenerateSingleTile(float tileSize, int x, int y, int heightLevel)
     {
         GameObject tileObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -856,9 +843,6 @@ public class ChessBoard : MonoBehaviour
 
         return tileObject;
     }
-
-
-
 
     private Vector2Int LookupTileIndex(GameObject hitInfo)
     {
@@ -914,6 +898,12 @@ public class ChessBoard : MonoBehaviour
         ChessPieces cp = Instantiate(prefabs[(int)type - 1], transform).GetComponent<ChessPieces>();
         cp.Init(type, team, id); // Przekazanie ID
         cp.GetComponent<MeshRenderer>().material = teamMaterials[team];
+
+        if (groundOffsets.TryGetValue(type, out float offset))
+            cp.groundOffset = offset;
+        else
+            cp.groundOffset = 0.5f; // domyślny offset
+
         return cp;
     }
 
@@ -932,23 +922,51 @@ public class ChessBoard : MonoBehaviour
         }
     }
 
+    // Ustawia pionek tak, aby jego dolna krawędź (bounding box) stykała się z kafelkiem.
     private void PositionSinglePiece(int x, int y, bool force = false)
     {
-        chessPieces[x, y].currentX = x;
-        chessPieces[x, y].currentY = y;
+        ChessPieces piece = chessPieces[x, y];
+        piece.currentX = x;
+        piece.currentY = y;
 
-        float tileHeight = tiles[x, y].transform.position.y; // Dopasowanie do wysokości kafelka
-        float pieceHeight = tileHeight + 1.5f; // Ustawienie wysokości pionka na kafelku
-        chessPieces[x, y].transform.position = new Vector3(x * tileSize, pieceHeight, y * tileSize);
+        float tileHeight = tiles[x, y].transform.position.y;
+        // Ustaw tymczasowo pozycję, aby bounding box został obliczony w world space
+        piece.transform.position = new Vector3(x * tileSize, 0f, y * tileSize);
 
-        // Ustawienie rotacji pionka na 0
-        chessPieces[x, y].transform.rotation = Quaternion.identity; // Pionki stoją prosto
+        Renderer[] renderers = piece.GetComponentsInChildren<Renderer>();
+        if (renderers.Length > 0)
+        {
+            Bounds combinedBounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                combinedBounds.Encapsulate(renderers[i].bounds);
+            }
+            float minY = combinedBounds.min.y;
+            float offset = tileHeight - minY;
+            float smallLift = 0.5f;
+            float finalY = offset + smallLift;
+            piece.transform.position = new Vector3(x * tileSize, finalY, y * tileSize);
+            Debug.Log($"PositionSinglePiece: Piece {piece.name} at tile({x},{y}): tileHeight={tileHeight}, bounds.min.y={minY}, offset={offset}, finalY={finalY}");
+        }
+        else
+        {
+            piece.transform.position = new Vector3(x * tileSize, tileHeight, y * tileSize);
+        }
+        piece.transform.rotation = Quaternion.identity;
     }
 
 
-    private Vector3 GetTileCenter(int x, int y)
+    private Vector3 GetTileCenter(int x, int y, ChessPieces movingPiece)
     {
         float tileHeight = tiles[x, y].transform.position.y;
-        return new Vector3(x * tileSize, tileHeight + 1.5f, y * tileSize);
+        if (movingPiece == null)
+        {
+            return new Vector3(x * tileSize, tileHeight, y * tileSize);
+        }
+        else
+        {
+            return new Vector3(x * tileSize, tileHeight + movingPiece.groundOffset, y * tileSize);
+        }
     }
 }
+

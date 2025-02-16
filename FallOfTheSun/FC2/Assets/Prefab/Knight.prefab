@@ -128,6 +128,8 @@ MonoBehaviour:
   movementRange: 0
   maxMovementRange: 0
   health: 0
+  maxHealth: 0
   attack: 0
   attackRange: 0
   attackCost: 0
+  hasPassiveAbility: 0
