@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 18a2aa4802f0c6d4ea0c476ba554d72c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - tileMaterial: {instanceID: 0}
+  - hoverMaterial: {instanceID: 0}
+  - pillarMaterial: {instanceID: 0}
+  - obstaclePrefab: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
