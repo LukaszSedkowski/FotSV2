@@ -11,13 +11,13 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private Material hoverMaterial; // Materiał do podświetlenia
     [SerializeField] private Material pillarMaterial; // Materiał dla filarów
 
-
-
-
     [Header("Pref")]
     [SerializeField] private GameObject[] prefabs;
     [SerializeField] private Material[] teamMaterials;
     [SerializeField] private GameObject obstaclePrefab;
+    [SerializeField] private GameObject obstaclePrefabRock;
+    [SerializeField] private GameObject rampPrefab;
+    [SerializeField] private GameObject stairsPrefab;
 
     [Header("HUD")]
     [SerializeField] private TeamPanel CurrentPiecePanel;
@@ -41,6 +41,12 @@ public class ChessBoard : MonoBehaviour
     private List<Vector2Int> highlightedTilesList = new List<Vector2Int>();
     private int currentTeam = 0; // Aktualna drużyna (zaczynamy od drużyny 0)
     private int numberOfTeams; // Przykładowo, ustawiamy na 4 drużyny
+
+    // Pola do definiowania plateau (wzniesienia/dołka)
+    private int plateauStartX, plateauStartY, plateauWidth, plateauHeight;
+    private float plateauHeightValue;
+
+    private List<Vector2Int> highlightedTilesPathList = new List<Vector2Int>();
 
     public static ChessBoard Instance { get; private set; }
 
@@ -350,13 +356,13 @@ public class ChessBoard : MonoBehaviour
 
                 // Uzyskujemy pozycję kafelka i ustawiamy wysokość przeszkody
                 Vector3 position = GetTileCenter(x, y, currentlyDragging);
-                position.y = tileHeight + 1.0f; // Ustawienie wysokości przeszkody zgodnie z wysokością kafelka
+                position.y = tileHeight + 0.5f; // Ustawienie wysokości przeszkody zgodnie z wysokością kafelka
 
                 // Debugowanie pozycji
                 Debug.Log("Placing obstacle at: " + position);
 
                 // Dodajemy przeszkodę w tym miejscu
-                Instantiate(obstaclePrefab, position, Quaternion.identity);
+                Instantiate(obstaclePrefabRock, position, Quaternion.identity);
             }
         }
     }
@@ -433,6 +439,27 @@ public class ChessBoard : MonoBehaviour
             if (tileRenderer != null)
             {
                 tileRenderer.material.color = Color.yellow;
+            }
+        }
+        foreach (Vector2Int pos in highlightedTilesPathList)
+        {
+            Renderer tileRenderer = tiles[pos.x, pos.y].GetComponent<Renderer>();
+            if (tileRenderer != null)
+            {
+                tileRenderer.material.color = Color.blue;
+            }
+        }
+    }
+
+    private void HighLightPath(List<Vector2Int> pathList)
+    {
+        foreach (var pos in pathList)
+        {
+            Renderer tileRenderer = tiles[pos.x, pos.y].GetComponent<Renderer>();
+            if (tileRenderer != null)
+            {
+                tileRenderer.material.color = Color.blue;
+                highlightedTilesPathList.Add(new Vector2Int(pos.x, pos.y));
             }
         }
     }
@@ -675,7 +702,12 @@ public class ChessBoard : MonoBehaviour
     private IEnumerator MovePieceAlongPath(ChessPieces cp, List<Vector2Int> path)
     {
         float moveDuration = 0.5f; // Możesz dostosować czas trwania ruchu
+
         Vector3 startPosition = cp.transform.position;
+
+        // Wyświetlamy trasę – wywołanie HighLightPath doda trasy do highlightedTilesPathList
+        HighLightPath(path);
+
 
         for (int i = 1; i < path.Count; i++)
         {
@@ -701,6 +733,13 @@ public class ChessBoard : MonoBehaviour
         }
         // Po zakończeniu animacji popraw pozycję pionka za pomocą bounding boxa
         PositionSinglePiece(cp.currentX, cp.currentY);
+
+        // Po zakończeniu ruchu czyścimy trasę, aby nie była widoczna stale
+        highlightedTilesPathList.Clear();
+
+        // Możesz też przywrócić domyślne kolory kafelków
+        ResetTileColors();
+
         // Po zakończeniu ruchu, zaktualizuj planszę
         Debug.Log($"Pionek dotarł na {path[path.Count - 1]}. Aktualizacja pozycji na planszy.");
     }
@@ -758,66 +797,99 @@ public class ChessBoard : MonoBehaviour
         Debug.Log("Nie znaleziono pionka z danym ID lub pionek należy do innej drużyny.");
     }
 
+    // Pomocnicza metoda, która sprawdza, czy dwa prostokątne obszary są od siebie oddalone o co najmniej minDistance
+    private bool RectanglesTooClose(int ax, int ay, int aw, int ah, int bx, int by, int bw, int bh, int minDistance)
+    {
+        int aLeft = ax - minDistance;
+        int aRight = ax + aw + minDistance;
+        int aTop = ay - minDistance;
+        int aBottom = ay + ah + minDistance;
+
+        return (bx < aRight && (bx + bw) > aLeft && by < aBottom && (by + bh) > aTop);
+    }
 
     private void GenerateAllTiles(float tileSize, int tileCountX, int tileCountY)
     {
+        // Inicjalizacja tablic
         tiles = new GameObject[tileCountX, tileCountY];
-        tileHeights = new float[tileCountX, tileCountY]; // Tablica przechowująca wysokości kafelków
+        tileHeights = new float[tileCountX, tileCountY];
 
-        // Losowe położenie płaskowyżu
-        int plateauHeight = tileCountY / 4; // Wysokość płaskowyżu
-        int plateauStartX = Random.Range(0, tileCountX - tileCountX / 2); // Losowe położenie na osi X
-        int plateauStartY = Random.Range(0, tileCountY - plateauHeight); // Losowe położenie na osi Y
-        float plateauHeightValue = Random.Range(1, 3); // Wysokość płaskowyżu
-
-        // Wskaźniki do kontrolowania szerokości płaskowyżu w poziomie
-        int plateauWidth = plateauHeight + Random.Range(0, tileCountX / 2); // Szerokość płaskowyżu
-
+        // 1. Ustaw bazową wysokość mapy na 5
         for (int x = 0; x < tileCountX; x++)
         {
             for (int y = 0; y < tileCountY; y++)
             {
-                // Obliczanie szerokości płaskowyżu w zależności od pozycji Y (aby uzyskać efekt schodzenia)
-                float distanceFromPlateau = Mathf.Abs(y - plateauStartY); // Odległość od centralnej linii płaskowyżu
-
-                // Jeśli kafelek jest w obrębie płaskowyżu
-                if (x >= plateauStartX && x < plateauStartX + plateauWidth &&
-                    y >= plateauStartY && y < plateauStartY + plateauHeight)
-                {
-                    // Generowanie równego terenu dla płaskowyżu
-                    tileHeights[x, y] = plateauHeightValue;
-                }
-                else
-                {
-                    // Generowanie spadków, kraterów lub schodków wokół terenu
-                    // Zmieniamy wysokość w zależności od odległości od płaskowyżu
-                    float distanceToPlateau = Mathf.Min(
-                        Mathf.Abs(x - plateauStartX), Mathf.Abs((plateauStartX + plateauWidth - 1) - x),
-                        Mathf.Abs(y - plateauStartY), Mathf.Abs((plateauStartY + plateauHeight - 1) - y)
-                    );
-
-                    if (distanceToPlateau == 1)
-                    {
-                        // Schodki o stałej różnicy wysokości
-                        tileHeights[x, y] = plateauHeightValue - 1;
-                    }
-                    else if (distanceToPlateau == 2)
-                    {
-                        // Spadek lub krater o losowej różnicy wysokości
-                        tileHeights[x, y] = plateauHeightValue - Random.Range(1, 2);
-                    }
-                    else
-                    {
-                        // Zmniejszająca się wysokość w miarę oddalania się od płaskowyżu
-                        tileHeights[x, y] = plateauHeightValue - Mathf.Min(distanceFromPlateau, Random.Range(0, 2));
-                    }
-                }
-
-                // Generowanie pojedynczego kafelka
-                tiles[x, y] = GenerateSingleTile(tileSize, x, y, (int)tileHeights[x, y]);
+                tileHeights[x, y] = 5f;
             }
         }
+
+        // Parametry wspólne
+        int plateauMinSize = 4;  // Plateau musi mieć co najmniej 4x4 pola
+        int borderOffset = 2;    // Plateau musi być co najmniej 2 pola od krawędzi mapy
+        int minDistance = 2;     // Plateau muszą być od siebie oddalone co najmniej o 2 pola
+
+        // 2. Generowanie wypukłego plateau (górka)
+        int p1Width = Random.Range(plateauMinSize, tileCountX / 2);
+        int p1Height = Random.Range(plateauMinSize, tileCountY / 2);
+        int p1StartX = Random.Range(borderOffset, tileCountX - p1Width - borderOffset);
+        int p1StartY = Random.Range(borderOffset, tileCountY - p1Height - borderOffset);
+        float p1HeightValue = 6f; // Wypukłe plateau: baza (5) + 1 = 6
+
+        // Nadpisujemy obszar wypukłego plateau
+        for (int x = p1StartX; x < p1StartX + p1Width; x++)
+        {
+            for (int y = p1StartY; y < p1StartY + p1Height; y++)
+            {
+                tileHeights[x, y] = p1HeightValue;
+            }
+        }
+
+        // 3. Generowanie wklęsłego plateau (dołek)
+        int p2Width, p2Height, p2StartX, p2StartY;
+        float p2HeightValue;
+        bool validP2 = false;
+        int attempts = 0;
+        do
+        {
+            p2Width = Random.Range(plateauMinSize, tileCountX / 2);
+            p2Height = Random.Range(plateauMinSize, tileCountY / 2);
+            p2StartX = Random.Range(borderOffset, tileCountX - p2Width - borderOffset);
+            p2StartY = Random.Range(borderOffset, tileCountY - p2Height - borderOffset);
+            p2HeightValue = 4f; // Wklęsłe plateau: baza (5) - 1 = 4
+
+            if (!RectanglesTooClose(p1StartX, p1StartY, p1Width, p1Height, p2StartX, p2StartY, p2Width, p2Height, minDistance))
+            {
+                validP2 = true;
+            }
+            attempts++;
+        } while (!validP2 && attempts < 100);
+
+        // Nadpisujemy obszar wklęsłego plateau
+        for (int x = p2StartX; x < p2StartX + p2Width; x++)
+        {
+            for (int y = p2StartY; y < p2StartY + p2Height; y++)
+            {
+                tileHeights[x, y] = p2HeightValue;
+            }
+        }
+
+        // 4. Generowanie kafelków według wartości w tablicy tileHeights
+        for (int x = 0; x < tileCountX; x++)
+        {
+            for (int y = 0; y < tileCountY; y++)
+            {
+                int heightLevel = Mathf.RoundToInt(tileHeights[x, y]);
+                tiles[x, y] = GenerateSingleTile(tileSize, x, y, heightLevel);
+            }
+        }
+
+        // 5. Generowanie przejść (schody/rampy) dla obu plateau:
+        // Dla wypukłego plateau (p1) używamy schodów (isHole == false)
+        // Dla wklęsłego plateau (p2) używamy ramp (isHole == true)
+        PlacePlateauTransitions(p1StartX, p1StartY, p1Width, p1Height, false);
+        PlacePlateauTransitions(p2StartX, p2StartY, p2Width, p2Height, true);
     }
+
 
     private GameObject GenerateSingleTile(float tileSize, int x, int y, int heightLevel)
     {
@@ -858,6 +930,68 @@ public class ChessBoard : MonoBehaviour
         }
         return -Vector2Int.one;
     }
+    private void PlacePlateauTransitions(int startX, int startY, int width, int height, bool isHole)
+    {
+        // Lewa krawędź plateau
+        for (int y = startY; y < startY + height; y++)
+        {
+            if (startX - 1 >= 0)
+            {
+                float hPlateau = tileHeights[startX, y];
+                float hAdjacent = tileHeights[startX - 1, y];
+                float diff = Mathf.Abs(hPlateau - hAdjacent);
+                if (diff > 0.1f)
+                {
+                    Vector3 posPlateau = tiles[startX, y].transform.position;
+                    Vector3 posAdjacent = tiles[startX - 1, y].transform.position;
+                    Vector3 transitionPos = (posPlateau + posAdjacent) / 2f;
+
+                    // Obliczamy kierunek na podstawie różnicy, zerujemy Y:
+                    Vector3 direction = posPlateau - posAdjacent;
+                    direction.y = 0f;
+                    Quaternion rot = Quaternion.LookRotation(direction, Vector3.up);
+                    // Dla lewej krawędzi dodajemy dodatkową rotację zależnie od typu:
+                    if (isHole)
+                        rot *= Quaternion.Euler(0, 180, 0);
+                    else
+                        rot *= Quaternion.Euler(0, 0, 0);
+
+                    // Instancjujemy prefabrykat
+                    Instantiate(isHole ? rampPrefab : stairsPrefab, transitionPos, rot);
+                }
+            }
+        }
+
+        // Prawa krawędź plateau
+        for (int y = startY; y < startY + height; y++)
+        {
+            if (startX + width < Tile_Count_X)
+            {
+                int rightTileX = startX + width - 1;
+                float hPlateau = tileHeights[rightTileX, y];
+                float hAdjacent = tileHeights[rightTileX + 1, y];
+                float diff = Mathf.Abs(hPlateau - hAdjacent);
+                if (diff > 0.1f)
+                {
+                    Vector3 posPlateau = tiles[rightTileX, y].transform.position;
+                    Vector3 posAdjacent = tiles[rightTileX + 1, y].transform.position;
+                    Vector3 transitionPos = (posPlateau + posAdjacent) / 2f;
+
+                    Vector3 direction = posAdjacent - posPlateau;
+                    direction.y = 0f;
+                    Quaternion rot = Quaternion.LookRotation(direction, Vector3.up);
+                    // Dla prawej krawędzi – inna korekta:
+                    if (isHole)
+                        rot *= Quaternion.Euler(0, 0, 0);
+                    else
+                        rot *= Quaternion.Euler(0, 180, 0);
+
+                    Instantiate(isHole ? rampPrefab : stairsPrefab, transitionPos, rot);
+                }
+            }
+        }
+    }
+
 
     private void SpawnAllPieces()
     {
