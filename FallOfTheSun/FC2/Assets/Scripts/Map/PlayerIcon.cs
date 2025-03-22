@@ -1,81 +1,190 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems; 
 
 public class PlayerMovement : MonoBehaviour
 {
     public float speed = 5f;
+    private float minSpeed = 1f;
+    private float maxSpeed = 10f;
+
     private Queue<Waypoint> pathQueue = new Queue<Waypoint>();
     private bool isMoving = false;
-    private bool isFrozen = false; // Nowa zmienna
+    private bool isFrozen = false;
     private Waypoint currentWaypoint;
+    private Waypoint selectedWaypoint; // Przechowuje wybrany waypoint
+
+    public Text dayText;
+    private int dayCount = 0;
+    private float timeMoving = 0f;
+
+    public Waypoint startPoint;
+    public GameObject movePanel; // Panel UI
+    public Button moveButton; // Przycisk do potwierdzenia ruchu
 
     void Start()
     {
-        // ZnajdŸ najbli¿szy punkt na starcie
-        currentWaypoint = FindClosestWaypoint();
-        transform.position = currentWaypoint.transform.position;
+        if (startPoint != null)
+        {
+            currentWaypoint = startPoint;
+            transform.position = startPoint.transform.position;
+        }
+        else
+        {
+            currentWaypoint = FindClosestWaypoint();
+            transform.position = currentWaypoint.transform.position;
+        }
+
+        movePanel.SetActive(false); // Ukrywamy panel na start
+        moveButton.onClick.AddListener(OnMoveConfirmed); // Podpinamy metodÄ™ do przycisku
+        UpdateDayUI();
     }
 
     void Update()
     {
-        // Sprawdzanie klikniêcia myszk¹
-        if (Input.GetMouseButtonDown(0)) // Klikniêcie myszk¹
+        if (Input.GetKeyDown(KeyCode.Equals))
         {
-            // ZnajdŸ nowy cel
+            speed = Mathf.Clamp(speed + 1f, minSpeed, maxSpeed);
+        }
+        if (Input.GetKeyDown(KeyCode.Minus))
+        {
+            speed = Mathf.Clamp(speed - 1f, minSpeed, maxSpeed);
+        }
+
+        if (Input.GetMouseButtonDown(0)) 
+        {
             Waypoint target = FindClosestWaypoint();
-            Waypoint start = pathQueue.Count > 0 ? pathQueue.Peek() : currentWaypoint; // Start = najbli¿szy waypoint
-
-            if (start != target) // SprawdŸ, czy nie klikniêto tego samego punktu
+            if (target != null && target != currentWaypoint)
             {
-                // Wyczyœæ poprzedni¹ trasê, aby zacz¹æ now¹
-                pathQueue.Clear();
-
-                // Oblicz now¹ œcie¿kê
-                List<Waypoint> path = FindPathAStar(start, target);
-
-                // Je¿eli jest œcie¿ka
-                if (path.Count > 0)
-                {
-                    // Wstaw punkty trasy do kolejki
-                    foreach (var wp in path)
-                    {
-                        pathQueue.Enqueue(wp);
-                    }
-
-                    isMoving = true;
-                }
+                selectedWaypoint = target;
+                movePanel.SetActive(true); // Pokazujemy panel
             }
         }
 
-        // Sprawdzanie klikniêcia spacji do zatrzymywania i wznawiania ruchu
+
+    if (Input.GetMouseButtonDown(0)) 
+    {
+        // Sprawdzamy, czy myszka jest nad UI - jeÅ›li tak, ignorujemy klikniÄ™cie
+        if (EventSystem.current.IsPointerOverGameObject())
+            return;
+
+        Waypoint target = FindClosestWaypoint();
+        
+        if (target != null && target != currentWaypoint)
+        {
+            selectedWaypoint = target;
+            movePanel.SetActive(true); // Pokazujemy panel
+        }
+        else
+        {
+            movePanel.SetActive(false); // Ukrywamy panel, jeÅ›li klikniÄ™to poza waypointem
+        }
+    }
+
+
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            if (isFrozen)
-            {
-                isFrozen = false; // Wznów ruch
-                isMoving = true;  // Kontynuuj poruszanie
-            }
-            else
-            {
-                isFrozen = true;  // ZamroŸ postaæ
-                isMoving = false; // Zatrzymaj ruch
-            }
+            isFrozen = !isFrozen;
+            isMoving = !isFrozen;
         }
 
-        // Ruszaj w kierunku nastêpnego waypointa w kolejce, tylko jeœli nie jest zamro¿ona
         if (isMoving && pathQueue.Count > 0)
         {
             MoveToNextWaypoint();
         }
+
+        if (isMoving)
+        {
+            timeMoving += Time.deltaTime;
+            if (timeMoving >= 5f)
+            {
+                dayCount++;
+                timeMoving = 0f;
+                UpdateDayUI();
+            }
+        }
     }
 
-    // Funkcja do zatrzymywania ruchu
-    void StopMovement()
+    void OnMoveConfirmed()
     {
-        isMoving = false;
-        pathQueue.Clear(); // Wyczyœæ poprzedni¹ trasê
+        if (selectedWaypoint == null) return;
+
+        movePanel.SetActive(false); // Ukrywamy panel
+
+        Waypoint start = pathQueue.Count > 0 ? pathQueue.Peek() : currentWaypoint;
+        pathQueue.Clear();
+        List<Waypoint> path = FindPathAStar(start, selectedWaypoint);
+
+        if (path.Count > 0)
+        {
+            foreach (var wp in path)
+            {
+                pathQueue.Enqueue(wp);
+            }
+            isMoving = true;
+        }
     }
+
+    void MoveToNextWaypoint()
+    {
+        if (pathQueue.Count == 0) return;
+
+        Waypoint targetWaypoint = pathQueue.Peek();
+        transform.position = Vector3.MoveTowards(transform.position, targetWaypoint.transform.position, speed * Time.deltaTime);
+
+        if (Vector3.Distance(transform.position, targetWaypoint.transform.position) < 0.1f)
+        {
+            pathQueue.Dequeue();
+            if (pathQueue.Count == 0)
+            {
+                isMoving = false;
+                currentWaypoint = targetWaypoint;
+            }
+        }
+    }
+
+void UpdateDayUI()
+{
+    dayText.text = "DzieÅ„: " + dayCount.ToString();
+
+    Waypoint[] waypoints = FindObjectsOfType<Waypoint>();
+    foreach (Waypoint wp in waypoints)
+    {
+        wp.UpdateDay();
+    }
+
+    if (dayCount % 5 == 0) // Co 5 dni losujemy nowe waypointy
+    {
+        ActivateRandomWaypoints(2, 3); // Wybierz losowo 2 waypointy na 3 dni
+    }
+}
+void ActivateRandomWaypoints(int count, int days)
+{
+    Waypoint[] waypoints = FindObjectsOfType<Waypoint>();
+
+    if (waypoints.Length == 0) return;
+
+    List<Waypoint> shuffledWaypoints = new List<Waypoint>(waypoints);
+    System.Random rng = new System.Random();
+    
+    // Tasujemy listÄ™ waypointÃ³w
+    for (int i = 0; i < shuffledWaypoints.Count; i++)
+    {
+        int randomIndex = rng.Next(i, shuffledWaypoints.Count);
+        Waypoint temp = shuffledWaypoints[i];
+        shuffledWaypoints[i] = shuffledWaypoints[randomIndex];
+        shuffledWaypoints[randomIndex] = temp;
+    }
+
+    // Wybieramy pierwsze 'count' waypointÃ³w z przetasowanej listy
+    for (int i = 0; i < Mathf.Min(count, shuffledWaypoints.Count); i++)
+    {
+        shuffledWaypoints[i].ActivateSpecialColor(days);
+    }
+}
+
 
     Waypoint FindClosestWaypoint()
     {
@@ -85,6 +194,7 @@ public class PlayerMovement : MonoBehaviour
         Waypoint[] waypoints = FindObjectsOfType<Waypoint>();
         Waypoint closest = null;
         float minDist = Mathf.Infinity;
+        float clickRange = 0.4f;
 
         foreach (Waypoint wp in waypoints)
         {
@@ -96,7 +206,7 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        return closest;
+        return closest != null && minDist <= clickRange ? closest : null;
     }
 
     List<Waypoint> FindPathAStar(Waypoint start, Waypoint goal)
@@ -143,27 +253,6 @@ public class PlayerMovement : MonoBehaviour
 
     float Heuristic(Waypoint a, Waypoint b)
     {
-        return Vector3.Distance(a.transform.position, b.transform.position); // Odleg³oœæ euklidesowa
-    }
-
-    void MoveToNextWaypoint()
-    {
-        if (pathQueue.Count == 0) return;
-
-        Waypoint targetWaypoint = pathQueue.Peek();
-        transform.position = Vector3.MoveTowards(transform.position, targetWaypoint.transform.position, speed * Time.deltaTime);
-
-        // Jeœli postaæ dotrze do waypointa
-        if (Vector3.Distance(transform.position, targetWaypoint.transform.position) < 0.1f)
-        {
-            pathQueue.Dequeue(); // Usuñ waypoint z kolejki
-
-            // Jeœli nie ma ju¿ kolejnych waypointów, zatrzymaj ruch
-            if (pathQueue.Count == 0)
-            {
-                isMoving = false;
-                currentWaypoint = targetWaypoint; // Ustaw obecny waypoint na ostatni punkt
-            }
-        }
+        return Vector3.Distance(a.transform.position, b.transform.position);
     }
 }
