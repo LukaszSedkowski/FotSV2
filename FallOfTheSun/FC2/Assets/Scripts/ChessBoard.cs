@@ -2,6 +2,10 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
+using System.Linq;
+using System;
+using static UnityEditor.Experimental.GraphView.GraphView;
+using UnityEngine.ProBuilder.Shapes;
 
 
 public class ChessBoard : MonoBehaviour
@@ -21,6 +25,12 @@ public class ChessBoard : MonoBehaviour
 
     [Header("HUD")]
     [SerializeField] private TeamPanel CurrentPiecePanel;
+
+    [Header("Fog")]
+    [SerializeField] private GameObject prefabFog;
+
+    private GameObject[,] fogTiles;
+    private float[,] TileWarFogHeight;
 
     private bool[,] obstacles;
 
@@ -46,7 +56,7 @@ public class ChessBoard : MonoBehaviour
     private int plateauStartX, plateauStartY, plateauWidth, plateauHeight;
     private float plateauHeightValue;
 
-    private List<Vector2Int> highlightedTilesPathList = new List<Vector2Int>();
+    private List<Node> currentPath = new List<Node>();
 
     public static ChessBoard Instance { get; private set; }
 
@@ -68,6 +78,8 @@ public class ChessBoard : MonoBehaviour
         numberOfTeams = teamMaterials.Length;
         GenerateAllTiles(tileSize, Tile_Count_X, Tile_Count_Y);
         InitializeTileHeights();
+        GenerateFogOfWar();
+        //GenerateWarFog(tiles.GetLength(1), tiles.GetLength(0), TileWarFogHeight);
         SpawnAllPieces();
         PositionAllPieces();
         obstacles = new bool[Tile_Count_X, Tile_Count_Y]; // Inicjalizacja tablicy przeszkód
@@ -76,6 +88,11 @@ public class ChessBoard : MonoBehaviour
         AddRandomObstacles(5);
         // Wybór pionka z ID równym 1 na początku gry
         SelectPieceById(1, currentTeam);
+
+        if (currentlyDragging != null)
+        {
+            UpdateFogOfWar(currentlyDragging.currentX, currentlyDragging.currentY);
+        }
 
         CurrentPiecePanel.CurrentPiecesSetPanel(currentlyDragging);
 
@@ -109,6 +126,7 @@ public class ChessBoard : MonoBehaviour
 
                     // Przywróć podświetlone pola
                     ReapplyHighlightedTiles();
+                    HighLightPath((hitPosition.x, hitPosition.y));
                 }
 
                 // Zmieniamy kolor na żółty
@@ -145,7 +163,10 @@ public class ChessBoard : MonoBehaviour
                     if (!validMove)
                     {
                         currentlyDragging.transform.position = GetTileCenter(previousPosition.x, previousPosition.y, currentlyDragging);
+
                     }
+                    UpdateFogOfWar(currentlyDragging.currentX, currentlyDragging.currentY);
+                    UpdatePieceVisibility();
                 }
             }
         }
@@ -171,6 +192,7 @@ public class ChessBoard : MonoBehaviour
         // Zmiana tury po wciśnięciu Q
         if (Input.GetKeyDown(KeyCode.Q))
         {
+
             int attempts = numberOfTeams; // Ograniczenie liczby prób na wypadek braku pionków u wszystkich drużyn
             do
             {
@@ -202,6 +224,8 @@ public class ChessBoard : MonoBehaviour
                 Camera.main.GetComponent<CameraController>().SetTarget(currentlyDragging.transform);
                 HighlightPossibleMoves(currentlyDragging);
             }
+            UpdateFogOfWar(currentlyDragging.currentX, currentlyDragging.currentY);
+            UpdatePieceVisibility();
         }
 
 
@@ -213,12 +237,20 @@ public class ChessBoard : MonoBehaviour
                 SelectPieceById(i, currentTeam);
 
                 CurrentPiecePanel.CurrentPiecesSetPanel(currentlyDragging);
-                
+
                 HighlightPossibleMoves(currentlyDragging);
             }
         }
 
-
+        currentPath.Clear();
+    }
+    public GameObject[,] GetTiles()
+    {
+        return tiles;
+    }
+    public float[,] GetTilesHeight()
+    {
+        return tileHeights;
     }
     private void HealTeam(int team)
     {
@@ -343,8 +375,8 @@ public class ChessBoard : MonoBehaviour
     {
         for (int i = 0; i < number; i++)
         {
-            int x = Random.Range(0, Tile_Count_X);
-            int y = Random.Range(0, Tile_Count_Y);
+            int x = UnityEngine.Random.Range(0, Tile_Count_X);
+            int y = UnityEngine.Random.Range(0, Tile_Count_Y);
 
             // Sprawdzamy, czy pole jest puste i nie jest przeszkodą
             if (chessPieces[x, y] == null && !obstacles[x, y])
@@ -373,7 +405,7 @@ public class ChessBoard : MonoBehaviour
     {
         ResetTileColors(); // Reset kolorów przed podświetleniem nowych
         highlightedTilesList.Clear(); // Wyczyść poprzednią listę
-
+        currentPath.Clear();
         int startX = cp.currentX;
         int startY = cp.currentY;
         int remainingMoves = cp.movementRange;
@@ -441,9 +473,9 @@ public class ChessBoard : MonoBehaviour
                 tileRenderer.material.color = Color.yellow;
             }
         }
-        foreach (Vector2Int pos in highlightedTilesPathList)
+        foreach (Node pos in currentPath)
         {
-            Renderer tileRenderer = tiles[pos.x, pos.y].GetComponent<Renderer>();
+            Renderer tileRenderer = tiles[pos.X, pos.Y].GetComponent<Renderer>();
             if (tileRenderer != null)
             {
                 tileRenderer.material.color = Color.blue;
@@ -451,15 +483,16 @@ public class ChessBoard : MonoBehaviour
         }
     }
 
-    private void HighLightPath(List<Vector2Int> pathList)
+    private void HighLightPath((int, int) end)
     {
+        List<Node> pathList = AStarPathFind(tiles, (currentlyDragging.currentX, currentlyDragging.currentY), (end.Item1, end.Item2));
         foreach (var pos in pathList)
         {
-            Renderer tileRenderer = tiles[pos.x, pos.y].GetComponent<Renderer>();
+            Renderer tileRenderer = tiles[pos.X, pos.Y].GetComponent<Renderer>();
             if (tileRenderer != null)
             {
                 tileRenderer.material.color = Color.blue;
-                highlightedTilesPathList.Add(new Vector2Int(pos.x, pos.y));
+                currentPath.Add(new Node(pos.X, pos.Y));
             }
         }
     }
@@ -538,7 +571,7 @@ public class ChessBoard : MonoBehaviour
 
                 // Zastosowanie obrażeń
                 targetPiece.health -= damage; // Zakładam, że masz pole health w ChessPieces
-                
+
                 Debug.Log($"Zaatakowano pionek przeciwnika. Zadano {damage} obrażeń. Pozostałe zdrowie: {targetPiece.health}. zasięg - {distance}");
                 currentlyDragging.movementRange = currentlyDragging.movementRange - currentlyDragging.attackCost;
                 currentlyDragging.TriggerPassiveAbility();
@@ -599,58 +632,67 @@ public class ChessBoard : MonoBehaviour
         }
     }
 
-    private bool FindPath(ChessPieces cp, int startX, int startY, int targetX, int targetY, int remainingMoves, bool[,] visited, ref int shortestCost, out List<Vector2Int> path)
+    private static readonly (int, int)[] Directions = { (0, 1), (1, 0), (0, -1), (-1, 0) };
+
+    public List<Node> AStarPathFind(GameObject[,] grid, (int, int) start, (int, int) end)
     {
-        Queue<(int x, int y, int remainingMoves, int cost, List<Vector2Int> currentPath)> queue = new Queue<(int, int, int, int, List<Vector2Int>)>();
-        queue.Enqueue((startX, startY, remainingMoves, 0, new List<Vector2Int> { new Vector2Int(startX, startY) }));
-        visited[startX, startY] = true;
+        var openList = new List<Node>();
+        var closedList = new HashSet<(int, int)>();
+        var startNode = new Node(start.Item1, start.Item2);
+        var endNode = new Node(end.Item1, end.Item2);
 
-        int[] dx = { 1, -1, 0, 0 };
-        int[] dy = { 0, 0, 1, -1 };
+        openList.Add(startNode);
 
-        path = null;
-        shortestCost = int.MaxValue;
-
-        while (queue.Count > 0)
+        while (openList.Count > 0)
         {
-            var (x, y, remaining, cost, currentPath) = queue.Dequeue();
+            var currentNode = openList.OrderBy(n => n.F).First();
 
-            if (x == targetX && y == targetY)
+            if (currentNode.X == endNode.X && currentNode.Y == endNode.Y)
+                return ReconstructPath(currentNode);
+
+            openList.Remove(currentNode);
+            closedList.Add((currentNode.X, currentNode.Y));
+
+            foreach (var (dx, dy) in Directions)
             {
-                if (cost < shortestCost)
+                int newX = currentNode.X + dx;
+                int newY = currentNode.Y + dy;
+
+                if (!IsValid(grid, newX, newY) || closedList.Contains((newX, newY)))
+                    continue;
+
+                var neighbor = new Node(newX, newY)
                 {
-                    shortestCost = cost;
-                    path = new List<Vector2Int>(currentPath);
-                }
-                return true;
-            }
+                    G = currentNode.G + 1,
+                    H = Math.Abs(newX - endNode.X) + Math.Abs(newY - endNode.Y),
+                    Parent = currentNode
+                };
 
-            for (int i = 0; i < 4; i++)
-            {
-                int newX = x + dx[i];
-                int newY = y + dy[i];
+                if (openList.Any(n => n.X == newX && n.Y == newY && n.G <= neighbor.G))
+                    continue;
 
-                if (newX >= 0 && newY >= 0 && newX < chessPieces.GetLength(0) && newY < chessPieces.GetLength(1))
-                {
-                    if (!visited[newX, newY] && chessPieces[newX, newY] == null && !obstacles[newX, newY])
-                    {
-                        float currentHeight = tiles[x, y].transform.position.y;
-                        float nextHeight = tiles[newX, newY].transform.position.y;
-                        int heightDifference = Mathf.Abs(Mathf.RoundToInt(currentHeight - nextHeight));
-                        int movementCost = 1 + Mathf.Min(heightDifference, 2);
-
-                        if (remaining >= movementCost)
-                        {
-                            visited[newX, newY] = true;
-                            var newPath = new List<Vector2Int>(currentPath) { new Vector2Int(newX, newY) };
-                            queue.Enqueue((newX, newY, remaining - movementCost, cost + movementCost, newPath));
-                        }
-                    }
-                }
+                openList.Add(neighbor);
             }
         }
 
-        return false;
+        return new List<Node>();
+    }
+
+    private bool IsValid(GameObject[,] grid, int x, int y)
+    {
+        return x >= 0 && y >= 0 && x < grid.GetLength(0) && y < grid.GetLength(1) && !obstacles[x, y] && highlightedTilesList.Contains(new Vector2Int(x, y));
+    }
+
+    private List<Node> ReconstructPath(Node node)
+    {
+        var path = new List<Node>();
+        while (node != null)
+        {
+            path.Add(node);
+            node = node.Parent;
+        }
+        path.Reverse();
+        return path;
     }
 
     private bool MoveTo(ChessPieces cp, int targetX, int targetY)
@@ -661,14 +703,15 @@ public class ChessBoard : MonoBehaviour
         bool[,] visited = new bool[chessPieces.GetLength(0), chessPieces.GetLength(1)];
         int shortestCost = int.MaxValue;
 
-        List<Vector2Int> path;
+        List<Node> path2 = AStarPathFind(tiles, (currentlyDragging.currentX, currentlyDragging.currentY), (targetX, targetY));
+        if (path2.Count != 0) shortestCost = path2.Count - 1;
+
         // Sprawdzenie, czy istnieje najkrótsza ścieżka do celu
-        if (!FindPath(cp, previousPosition.x, previousPosition.y, targetX, targetY, cp.movementRange, visited, ref shortestCost, out path))
+        if (path2.Count - 1 > cp.movementRange)
         {
             Debug.Log("Nie znaleziono ścieżki.");
             return false;
         }
-
         // Sprawdzenie, czy pionek ma wystarczająco punktów ruchu
         if (shortestCost > cp.movementRange)
         {
@@ -677,7 +720,7 @@ public class ChessBoard : MonoBehaviour
         }
 
         // Uruchom Coroutine do animacji ruchu
-        StartCoroutine(MovePieceAlongPath(cp, path));
+        StartCoroutine(MovePieceAlongPath(cp, path2));
 
         // Zaktualizuj pionka
         cp.currentX = targetX;
@@ -699,25 +742,23 @@ public class ChessBoard : MonoBehaviour
         return true;
     }
 
-    private IEnumerator MovePieceAlongPath(ChessPieces cp, List<Vector2Int> path)
+    private IEnumerator MovePieceAlongPath(ChessPieces cp, List<Node> path)
     {
         float moveDuration = 0.5f; // Możesz dostosować czas trwania ruchu
 
         Vector3 startPosition = cp.transform.position;
 
-        // Wyświetlamy trasę – wywołanie HighLightPath doda trasy do highlightedTilesPathList
-        HighLightPath(path);
-
 
         for (int i = 1; i < path.Count; i++)
         {
-            Vector2Int currentPos = path[i - 1];
-            Vector2Int nextPos = path[i];
+            Vector2Int currentPos = new Vector2Int(path[i - 1].X, path[i - 1].Y);
+            Vector2Int nextPos = new Vector2Int(path[i].X, path[i].Y);
 
             // Oblicz pozycję docelową
             Vector3 targetPosition = GetTileCenter(nextPos.x, nextPos.y, cp);
             float elapsedTime = 0f;
-
+            UpdateFogOfWar(nextPos.x, nextPos.y);
+            UpdatePieceVisibility();
             while (elapsedTime < moveDuration)
             {
                 cp.transform.position = Vector3.Lerp(startPosition, targetPosition, elapsedTime / moveDuration);
@@ -735,7 +776,7 @@ public class ChessBoard : MonoBehaviour
         PositionSinglePiece(cp.currentX, cp.currentY);
 
         // Po zakończeniu ruchu czyścimy trasę, aby nie była widoczna stale
-        highlightedTilesPathList.Clear();
+        currentPath.Clear();
 
         // Możesz też przywrócić domyślne kolory kafelków
         ResetTileColors();
@@ -829,10 +870,10 @@ public class ChessBoard : MonoBehaviour
         int minDistance = 2;     // Plateau muszą być od siebie oddalone co najmniej o 2 pola
 
         // 2. Generowanie wypukłego plateau (górka)
-        int p1Width = Random.Range(plateauMinSize, tileCountX / 2);
-        int p1Height = Random.Range(plateauMinSize, tileCountY / 2);
-        int p1StartX = Random.Range(borderOffset, tileCountX - p1Width - borderOffset);
-        int p1StartY = Random.Range(borderOffset, tileCountY - p1Height - borderOffset);
+        int p1Width = UnityEngine.Random.Range(plateauMinSize, tileCountX / 2);
+        int p1Height = UnityEngine.Random.Range(plateauMinSize, tileCountY / 2);
+        int p1StartX = UnityEngine.Random.Range(borderOffset, tileCountX - p1Width - borderOffset);
+        int p1StartY = UnityEngine.Random.Range(borderOffset, tileCountY - p1Height - borderOffset);
         float p1HeightValue = 6f; // Wypukłe plateau: baza (5) + 1 = 6
 
         // Nadpisujemy obszar wypukłego plateau
@@ -851,10 +892,10 @@ public class ChessBoard : MonoBehaviour
         int attempts = 0;
         do
         {
-            p2Width = Random.Range(plateauMinSize, tileCountX / 2);
-            p2Height = Random.Range(plateauMinSize, tileCountY / 2);
-            p2StartX = Random.Range(borderOffset, tileCountX - p2Width - borderOffset);
-            p2StartY = Random.Range(borderOffset, tileCountY - p2Height - borderOffset);
+            p2Width = UnityEngine.Random.Range(plateauMinSize, tileCountX / 2);
+            p2Height = UnityEngine.Random.Range(plateauMinSize, tileCountY / 2);
+            p2StartX = UnityEngine.Random.Range(borderOffset, tileCountX - p2Width - borderOffset);
+            p2StartY = UnityEngine.Random.Range(borderOffset, tileCountY - p2Height - borderOffset);
             p2HeightValue = 4f; // Wklęsłe plateau: baza (5) - 1 = 4
 
             if (!RectanglesTooClose(p1StartX, p1StartY, p1Width, p1Height, p2StartX, p2StartY, p2Width, p2Height, minDistance))
@@ -878,8 +919,10 @@ public class ChessBoard : MonoBehaviour
         {
             for (int y = 0; y < tileCountY; y++)
             {
+
                 int heightLevel = Mathf.RoundToInt(tileHeights[x, y]);
                 tiles[x, y] = GenerateSingleTile(tileSize, x, y, heightLevel);
+                Debug.Log("Wysokość: " + heightLevel);
             }
         }
 
@@ -999,7 +1042,7 @@ public class ChessBoard : MonoBehaviour
 
         int whiteTeam = 0, blackTeam = 1, redTeam = 2, blueTeam = 3;
         int whiteId = 1, blackId = 1, redId = 1, blueId = 1; // ID dla obu drużyn zaczynają się od 1
-        int i = 0, team =0;
+        int i = 0, team = 0;
         // Przykładowa konfiguracja pionków
         /*chessPieces[0, 0] = SpawnSinglePiece(ChessPieceType.Hunter, whiteTeam, whiteId++);
         chessPieces[1, 0] = SpawnSinglePiece(ChessPieceType.Knight, blackTeam, blackId++);
@@ -1012,12 +1055,12 @@ public class ChessBoard : MonoBehaviour
         // Możesz dodać więcej pionków w podobny sposób
 
 
-        foreach (var pieces in GameMenu.Instance.selectedCharacters) 
+        foreach (var pieces in GameMenu.Instance.selectedCharacters)
         {
             int pieceID = 1;
-        foreach(var piece in pieces)
+            foreach (var piece in pieces)
             {
-                
+
                 chessPieces[i, 0] = SpawnSinglePiece(piece, team, pieceID++);
                 Debug.Log("Stworzony pionek" + piece);
                 i++;
@@ -1101,6 +1144,104 @@ public class ChessBoard : MonoBehaviour
         {
             return new Vector3(x * tileSize, tileHeight + movingPiece.groundOffset, y * tileSize);
         }
+    }
+
+
+
+    //FogOfWar scripts
+
+
+
+    private void GenerateFogOfWar()
+    {
+        fogTiles = new GameObject[Tile_Count_X, Tile_Count_Y];
+
+        for (int x = 0; x < Tile_Count_X; x++)
+        {
+            for (int y = 0; y < Tile_Count_Y; y++)
+            {
+
+                GameObject fog = Instantiate(prefabFog, new Vector3((x * tileSize) + 0.01f, tileHeights[x, y] + 1, (y * tileSize) + 0.01f), Quaternion.identity);
+                fog.layer = LayerMask.NameToLayer("Fog");
+                fogTiles[x, y] = fog;
+            }
+        }
+    }
+
+    private void UpdateFogOfWar(int posX, int posY)
+    {
+        // Resetuj mgłę wojny (zakryj całą mapę)
+        for (int x = 0; x < Tile_Count_X; x++)
+        {
+            for (int y = 0; y < Tile_Count_Y; y++)
+            {
+                fogTiles[x, y].SetActive(true);
+            }
+        }
+
+        // Odsłoń obszar wokół wszystkich pionków z aktywnej drużyny
+        foreach (var piece in chessPieces)
+        {
+            if (piece != null && piece.team == currentTeam)
+            {
+                RevealArea(piece.currentX, piece.currentY, piece.visionRange); // Zakres widoczności: 3 pola
+            }
+        }
+        if (currentlyDragging != null && currentlyDragging.team == currentTeam)
+        {
+            RevealArea(posX, posY, currentlyDragging.visionRange);
+        }
+    }
+
+
+    private void RevealArea(int centerX, int centerY, int radius)
+    {
+        for (int dx = -radius; dx <= radius; dx++)
+        {
+            for (int dy = -radius; dy <= radius; dy++)
+            {
+                int newX = centerX + dx;
+                int newY = centerY + dy;
+
+                if (newX >= 0 && newX < Tile_Count_X && newY >= 0 && newY < Tile_Count_Y)
+                {
+                    fogTiles[newX, newY].SetActive(false);
+                }
+            }
+        }
+    }
+    private void UpdatePieceVisibility()
+    {
+        foreach (var piece in chessPieces)
+        {
+            if (piece != null)
+            {
+                // Ukryj pionek, jeśli znajduje się w ukrytym obszarze mgły
+                if (fogTiles[piece.currentX, piece.currentY].activeSelf)
+                {
+                    piece.gameObject.SetActive(false);
+                }
+                else
+                {
+                    piece.gameObject.SetActive(true);
+                }
+            }
+        }
+    }
+
+}
+public class Node
+{
+    public int X, Y;
+    public int G, H;
+    public Node Parent;
+
+    public int F => G + H;
+
+    public Node(int x, int y)
+    {
+        X = x;
+        Y = y;
     }
 }
 

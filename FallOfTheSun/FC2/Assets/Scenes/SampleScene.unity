@@ -184,6 +184,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  visionRange: 3
   hasPassiveAbility: 0
 --- !u!1 &93126895
 GameObject:
@@ -700,6 +701,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  visionRange: 3
   hasPassiveAbility: 0
 --- !u!1 &330585543
 GameObject:
@@ -993,6 +995,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 385329898}
   m_CullTransparentMesh: 1
+--- !u!1 &409282422 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 389110709415280420, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+  m_PrefabInstance: {fileID: 1064095309}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -1597,6 +1604,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  visionRange: 3
   hasPassiveAbility: 0
 --- !u!1 &773179776 stripped
 GameObject:
@@ -1627,6 +1635,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  visionRange: 3
   hasPassiveAbility: 0
 --- !u!1001 &800078455
 PrefabInstance:
@@ -1891,6 +1900,75 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 2090715938504972874, guid: 10586d30684610a4ea62174ac7e4bb72, type: 3}
   m_PrefabInstance: {fileID: 3837064826693271576}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1064095309
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 389110709415280420, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_Name
+      value: FogOfWar
+      objectReference: {fileID: 0}
+    - target: {fileID: 1730570524576669955, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_ExcludeLayers.m_Bits
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1730570524576669955, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_IncludeLayers.m_Bits
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2877038465511027949, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 5d6559913e91edc4a9cb4fa8abf9f3ac, type: 2}
+    - target: {fileID: 5394814958748100378, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 20.38435
+      objectReference: {fileID: 0}
+    - target: {fileID: 5394814958748100378, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -8.514338
+      objectReference: {fileID: 0}
+    - target: {fileID: 5394814958748100378, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 13.19817
+      objectReference: {fileID: 0}
+    - target: {fileID: 5394814958748100378, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5394814958748100378, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5394814958748100378, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5394814958748100378, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5394814958748100378, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5394814958748100378, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5394814958748100378, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
 --- !u!1 &1209179410 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100000, guid: 08258afcf0b38f34a93780d9aac149f8, type: 3}
@@ -2075,6 +2153,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  visionRange: 3
   hasPassiveAbility: 0
 --- !u!1 &1626458659
 GameObject:
@@ -2341,6 +2420,7 @@ MonoBehaviour:
   rampPrefab: {fileID: 538867133}
   stairsPrefab: {fileID: 1209179410}
   CurrentPiecePanel: {fileID: 1936734076}
+  prefabFog: {fileID: 409282422}
 --- !u!4 &1685910853
 Transform:
   m_ObjectHideFlags: 0
@@ -2385,6 +2465,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  visionRange: 3
   hasPassiveAbility: 0
 --- !u!1 &1851521357
 GameObject:
@@ -3710,3 +3791,4 @@ SceneRoots:
   - {fileID: 132743389}
   - {fileID: 800078455}
   - {fileID: 1677438590}
+  - {fileID: 1064095309}

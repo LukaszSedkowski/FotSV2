@@ -28,7 +28,7 @@ public class ChessPieces : MonoBehaviour
     public int attackRange;
     public int attackCost;
     public float groundOffset = 0.5f;
-
+    public int visionRange = 3;
 
     public bool hasPassiveAbility;
 
