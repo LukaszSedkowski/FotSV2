@@ -22,6 +22,7 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private GameObject obstaclePrefabRock;
     [SerializeField] private GameObject rampPrefab;
     [SerializeField] private GameObject stairsPrefab;
+    [SerializeField] private GameObject caveEntrancePrefab;
 
     [Header("HUD")]
     [SerializeField] private TeamPanel CurrentPiecePanel;
@@ -38,8 +39,8 @@ public class ChessBoard : MonoBehaviour
     private ChessPieces currentlyDragging;
     private bool[] teamIsActive;
     private Color originalColor;
-    private const int Tile_Count_X = 20;
-    private const int Tile_Count_Y = 20;
+    public const int Tile_Count_X = 20;
+    public const int Tile_Count_Y = 20;
     private float tileSize = 1.0f;
 
     private bool[,] highlightedTiles;
@@ -51,6 +52,11 @@ public class ChessBoard : MonoBehaviour
     private List<Vector2Int> highlightedTilesList = new List<Vector2Int>();
     private int currentTeam = 0; // Aktualna drużyna (zaczynamy od drużyny 0)
     private int numberOfTeams; // Przykładowo, ustawiamy na 4 drużyny
+
+    private int p1StartX, p1StartY, p1Width, p1Height;
+    private float p1HeightValue;
+    private int p2StartX, p2StartY, p2Width, p2Height;
+    private float p2HeightValue;
 
     // Pola do definiowania plateau (wzniesienia/dołka)
     private int plateauStartX, plateauStartY, plateauWidth, plateauHeight;
@@ -101,6 +107,36 @@ public class ChessBoard : MonoBehaviour
 
         // Ustawienie kamery na wybrany pionek
         Camera.main.GetComponent<CameraController>().SetTarget(chessPieces[0, 0].transform);
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Jeśli nowa scena to DungeonScene, odśwież elementy
+        if (scene.name == "DungeonScene")
+        {
+            // Odśwież mgłę – zakładając, że metoda GenerateFogOfWar tworzy mgłę
+            GenerateFogOfWar();
+
+            // Odśwież przejścia (schody, rampy) – jeśli potrzebujesz innych ustawień, możesz dodać warunki
+            // Przyjmujemy, że plateau wciąż są przechowywane w zmiennych (p1StartX, p1StartY itd.)
+            PlacePlateauTransitions(plateauStartX, plateauStartY, plateauWidth, plateauHeight, false);
+            // Dla dołka (wklęsłego plateau):
+            PlacePlateauTransitions(p2StartX, p2StartY, p2Width, p2Height, true);
+
+            // Możesz też odświeżyć inne elementy – np. pozycje pionków, jeżeli to potrzebne
+            // (jeśli pionki powinny być ustawione obok portalu, możesz tutaj wywołać metodę repositionującą)
+            Debug.Log("DungeonScene załadowana – odświeżono elementy mapy.");
+        }
     }
 
     private void Update()
@@ -884,7 +920,11 @@ public class ChessBoard : MonoBehaviour
                 tileHeights[x, y] = p1HeightValue;
             }
         }
-
+        p1Width = UnityEngine.Random.Range(plateauMinSize, tileCountX / 2);
+        p1Height = UnityEngine.Random.Range(plateauMinSize, tileCountY / 2);
+        p1StartX = UnityEngine.Random.Range(borderOffset, tileCountX - p1Width - borderOffset);
+        p1StartY = UnityEngine.Random.Range(borderOffset, tileCountY - p1Height - borderOffset);
+        p1HeightValue = 6f;
         // 3. Generowanie wklęsłego plateau (dołek)
         int p2Width, p2Height, p2StartX, p2StartY;
         float p2HeightValue;
@@ -931,7 +971,19 @@ public class ChessBoard : MonoBehaviour
         // Dla wklęsłego plateau (p2) używamy ramp (isHole == true)
         PlacePlateauTransitions(p1StartX, p1StartY, p1Width, p1Height, false);
         PlacePlateauTransitions(p2StartX, p2StartY, p2Width, p2Height, true);
+        PlaceCaveEntranceInHole(p2StartX, p2StartY, p2Width, p2Height);
     }
+
+    private void PlaceCaveEntranceInHole(int startX, int startY, int width, int height)
+    {
+        int centerX = startX + width / 2;
+        int centerY = startY + height / 2;
+        float tileHeight = tileHeights[centerX, centerY];
+        Vector3 position = new Vector3(centerX * tileSize, tileHeight + 0.5f, centerY * tileSize);
+        Debug.Log("Placing cave entrance at: " + position);
+        Instantiate(caveEntrancePrefab, position, Quaternion.identity);
+    }
+
 
 
     private GameObject GenerateSingleTile(float tileSize, int x, int y, int heightLevel)
@@ -1133,7 +1185,7 @@ public class ChessBoard : MonoBehaviour
     }
 
 
-    private Vector3 GetTileCenter(int x, int y, ChessPieces movingPiece)
+    public Vector3 GetTileCenter(int x, int y, ChessPieces movingPiece)
     {
         float tileHeight = tiles[x, y].transform.position.y;
         if (movingPiece == null)
@@ -1244,4 +1296,3 @@ public class Node
         Y = y;
     }
 }
-
