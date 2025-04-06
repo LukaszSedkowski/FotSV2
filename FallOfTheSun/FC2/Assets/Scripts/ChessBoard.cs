@@ -1095,18 +1095,7 @@ public class ChessBoard : MonoBehaviour
         int whiteTeam = 0, blackTeam = 1, redTeam = 2, blueTeam = 3;
         int whiteId = 1, blackId = 1, redId = 1, blueId = 1; // ID dla obu drużyn zaczynają się od 1
         int i = 0, team = 0;
-        // Przykładowa konfiguracja pionków
-        /*chessPieces[0, 0] = SpawnSinglePiece(ChessPieceType.Hunter, whiteTeam, whiteId++);
-        chessPieces[1, 0] = SpawnSinglePiece(ChessPieceType.Knight, blackTeam, blackId++);
-        chessPieces[2, 0] = SpawnSinglePiece(ChessPieceType.Priestess, whiteTeam, whiteId++);
-        chessPieces[3, 0] = SpawnSinglePiece(ChessPieceType.Dog, blackTeam, blackId++);
-        chessPieces[5, 0] = SpawnSinglePiece(ChessPieceType.Ogre, redTeam, redId++);
-        chessPieces[6, 0] = SpawnSinglePiece(ChessPieceType.Skeleton, redTeam, redId++);
-        chessPieces[7, 0] = SpawnSinglePiece(ChessPieceType.Vampir, blueTeam, blueId++);
-        chessPieces[7, 1] = SpawnSinglePiece(ChessPieceType.Werewolf, blueTeam, blueId++);*/
-        // Możesz dodać więcej pionków w podobny sposób
-
-
+        
         foreach (var pieces in GameMenu.Instance.selectedCharacters)
         {
             int pieceID = 1;

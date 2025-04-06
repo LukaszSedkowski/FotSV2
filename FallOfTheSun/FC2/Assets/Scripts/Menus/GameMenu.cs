@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // Jeœli korzystasz z TextMeshPro
+using TMPro; // Jeï¿½li korzystasz z TextMeshPro
 using UnityEngine.SceneManagement;
 
 public class GameMenu : MonoBehaviour
@@ -52,10 +52,10 @@ public class GameMenu : MonoBehaviour
     }
     public void GuestPlay()
     {
-        // Sprawdzenie czy lista wybranych postaci zosta³a zainicjowana i czy ka¿dy gracz wybra³ wystarczaj¹c¹ liczbê postaci
+        // Sprawdzenie czy lista wybranych postaci zostaï¿½a zainicjowana i czy kaï¿½dy gracz wybraï¿½ wystarczajï¿½cï¿½ liczbï¿½ postaci
         if (selectedCharacters == null || selectedCharacters.Count == 0)
         {
-            validationText.text = "Najpierw wybierz postacie, aby zacz¹æ grê!";
+            validationText.text = "Najpierw wybierz postacie, aby zaczï¿½ï¿½ grï¿½!";
             return;
         }
 
@@ -63,12 +63,12 @@ public class GameMenu : MonoBehaviour
         {
             if (playerSelection.Count < pawnCount)
             {
-                validationText.text = "Najpierw wybierz postacie, aby zacz¹æ grê!";
+                validationText.text = "Najpierw wybierz postacie, aby zaczï¿½ï¿½ grï¿½!";
                 return;
             }
         }
 
-        // Jeœli walidacja przesz³a, czyœcimy komunikat i rozpoczynamy grê
+        // Jeï¿½li walidacja przeszï¿½a, czyï¿½cimy komunikat i rozpoczynamy grï¿½
         validationText.text = "";
         DisableCamera();
         SceneManager.LoadScene(1);

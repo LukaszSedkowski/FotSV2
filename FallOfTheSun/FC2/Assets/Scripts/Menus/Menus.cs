@@ -14,6 +14,7 @@ public  class Menus : MonoBehaviour
     public  GameObject loginRegistration;
     public  GameObject resetPassword;
     public  GameObject gameMenu;
+    public  GameObject GoCamp;
 
     private void Awake()
     {
