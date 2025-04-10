@@ -49,7 +49,7 @@ public class GoCamp : MonoBehaviour
 
 
         DisableCamera();
-        SceneManager.LoadScene(3);
+        SceneManager.LoadScene(2);
     }
 
     public void Exit()

@@ -56,12 +56,12 @@
       "version": "1.0.0",
       "source": "builtin"
     },
-    "com.unity.probuilder@6.0.4": {
+    "com.unity.probuilder@6.0.5": {
       "name": "com.unity.probuilder",
       "resolvedPath": "C:\\Users\\Luki\\Documents\\GitHub\\FotSV2\\FallOfTheSun\\FC2\\Library\\PackageCache\\com.unity.probuilder",
-      "fingerprint": "a2827f523e21ea251861dac290125410ba4e560b",
+      "fingerprint": "b55f3ad2afd2f5505e0e532971da5bb5a17f128f",
       "editorCompatibility": "6000.0.0a1",
-      "version": "6.0.4",
+      "version": "6.0.5",
       "source": "registry"
     },
     "com.unity.render-pipelines.universal@17.0.3": {

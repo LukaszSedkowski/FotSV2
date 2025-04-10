@@ -11,18 +11,17 @@ using UnityEngine.ProBuilder.Shapes;
 public class ChessBoard : MonoBehaviour
 {
     [Header("Art")]
-    [SerializeField] private Material tileMaterial; // Materiał dla kafelków
+    [SerializeField] private Material[] tileMaterials; // Materiał dla kafelków
     [SerializeField] private Material hoverMaterial; // Materiał do podświetlenia
     [SerializeField] private Material pillarMaterial; // Materiał dla filarów
+    [SerializeField] private GameObject[] tilePrefabs;
 
     [Header("Pref")]
     [SerializeField] private GameObject[] prefabs;
     [SerializeField] private Material[] teamMaterials;
     [SerializeField] private GameObject obstaclePrefab;
     [SerializeField] private GameObject obstaclePrefabRock;
-    [SerializeField] private GameObject rampPrefab;
-    [SerializeField] private GameObject stairsPrefab;
-    [SerializeField] private GameObject caveEntrancePrefab;
+
 
     [Header("HUD")]
     [SerializeField] private TeamPanel CurrentPiecePanel;
@@ -109,35 +108,8 @@ public class ChessBoard : MonoBehaviour
         Camera.main.GetComponent<CameraController>().SetTarget(chessPieces[0, 0].transform);
     }
 
-    private void OnEnable()
-    {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-    }
 
-    private void OnDisable()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
 
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        // Jeśli nowa scena to DungeonScene, odśwież elementy
-        if (scene.name == "DungeonScene")
-        {
-            // Odśwież mgłę – zakładając, że metoda GenerateFogOfWar tworzy mgłę
-            GenerateFogOfWar();
-
-            // Odśwież przejścia (schody, rampy) – jeśli potrzebujesz innych ustawień, możesz dodać warunki
-            // Przyjmujemy, że plateau wciąż są przechowywane w zmiennych (p1StartX, p1StartY itd.)
-            PlacePlateauTransitions(plateauStartX, plateauStartY, plateauWidth, plateauHeight, false);
-            // Dla dołka (wklęsłego plateau):
-            PlacePlateauTransitions(p2StartX, p2StartY, p2Width, p2Height, true);
-
-            // Możesz też odświeżyć inne elementy – np. pozycje pionków, jeżeli to potrzebne
-            // (jeśli pionki powinny być ustawione obok portalu, możesz tutaj wywołać metodę repositionującą)
-            Debug.Log("DungeonScene załadowana – odświeżono elementy mapy.");
-        }
-    }
 
     private void Update()
     {
@@ -424,7 +396,7 @@ public class ChessBoard : MonoBehaviour
 
                 // Uzyskujemy pozycję kafelka i ustawiamy wysokość przeszkody
                 Vector3 position = GetTileCenter(x, y, currentlyDragging);
-                position.y = tileHeight + 0.5f; // Ustawienie wysokości przeszkody zgodnie z wysokością kafelka
+                position.y = tileHeight + 0.8f; // Ustawienie wysokości przeszkody zgodnie z wysokością kafelka
 
                 // Debugowanie pozycji
                 Debug.Log("Placing obstacle at: " + position);
@@ -955,45 +927,103 @@ public class ChessBoard : MonoBehaviour
         }
 
         // 4. Generowanie kafelków według wartości w tablicy tileHeights
-        for (int x = 0; x < tileCountX; x++)
-        {
-            for (int y = 0; y < tileCountY; y++)
-            {
+// Zmieniamy ten fragment, który tworzy kafelek:
+for (int x = 0; x < tileCountX; x++)
+{
+    for (int y = 0; y < tileCountY; y++)
+    {
+        float height = tileHeights[x, y];
+        GameObject tilePrefabToUse = tilePrefabs[0]; // domyślnie płaski
+        float heightOffset = 0f;
 
-                int heightLevel = Mathf.RoundToInt(tileHeights[x, y]);
-                tiles[x, y] = GenerateSingleTile(tileSize, x, y, heightLevel);
-                Debug.Log("Wysokość: " + heightLevel);
-            }
+        // Czy ten kafelek ma być pochylnią?
+        bool isRamp = false;
+        Vector3 rampDirection = Vector3.zero;
+
+        if (x > 0 && tileHeights[x - 1, y] > height)
+        {
+            isRamp = true;
+            rampDirection = Vector3.left;
+        }
+        else if (x < tileCountX - 1 && tileHeights[x + 1, y] > height)
+        {
+            isRamp = true;
+            rampDirection = Vector3.right;
+        }
+        else if (y > 0 && tileHeights[x, y - 1] > height)
+        {
+            isRamp = true;
+            rampDirection = Vector3.back;
+        }
+        else if (y < tileCountY - 1 && tileHeights[x, y + 1] > height)
+        {
+            isRamp = true;
+            rampDirection = Vector3.forward;
         }
 
-        // 5. Generowanie przejść (schody/rampy) dla obu plateau:
-        // Dla wypukłego plateau (p1) używamy schodów (isHole == false)
-        // Dla wklęsłego plateau (p2) używamy ramp (isHole == true)
-        PlacePlateauTransitions(p1StartX, p1StartY, p1Width, p1Height, false);
-        PlacePlateauTransitions(p2StartX, p2StartY, p2Width, p2Height, true);
-        PlaceCaveEntranceInHole(p2StartX, p2StartY, p2Width, p2Height);
+        if (isRamp)
+        {
+            tilePrefabToUse = tilePrefabs[1]; // prefab schodów
+            heightOffset = 1f; // bo schody mają wyższy koniec
+        }
+
+        // Pozycja kafelka
+        Vector3 pos = new Vector3(x * tileSize, height + heightOffset, y * tileSize);
+        GameObject go = Instantiate(tilePrefabToUse, pos, Quaternion.identity, transform);
+        go.name = $"Tile {x},{y}";
+        tiles[x, y] = go;
+        go.layer = LayerMask.NameToLayer("Tile");
+
+        // Ustaw materiał
+        MeshRenderer mr = go.GetComponent<MeshRenderer>();
+        if (mr != null)
+        {
+            mr.material = tileMaterials[(x + y) % 2];
+        }
+
+        // Filar pod kafelek
+        GameObject pillar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        pillar.transform.parent = go.transform;
+        pillar.transform.localScale = new Vector3(1, height - 1f, 1);
+        pillar.transform.localPosition = new Vector3(0, -(height / 2), 0);
+        pillar.GetComponent<MeshRenderer>().material = pillarMaterial;
+
+        // Obróć schody w stronę wyższego kafelka
+        if (isRamp)
+        {
+            float angle = 0f;
+            if (rampDirection == Vector3.left) angle = -90f;
+            else if (rampDirection == Vector3.right) angle = 90f;
+            else if (rampDirection == Vector3.back) angle = 180f;
+            // forward (czyli domyślnie) to 0°
+
+            go.transform.rotation = Quaternion.Euler(0, angle, 0);
+        }
+    }
+}
+
+
+
+
+
+
     }
 
-    private void PlaceCaveEntranceInHole(int startX, int startY, int width, int height)
-    {
-        int centerX = startX + width / 2;
-        int centerY = startY + height / 2;
-        float tileHeight = tileHeights[centerX, centerY];
-        Vector3 position = new Vector3(centerX * tileSize, tileHeight + 0.5f, centerY * tileSize);
-        Debug.Log("Placing cave entrance at: " + position);
-        Instantiate(caveEntrancePrefab, position, Quaternion.identity);
-    }
+
 
 
 
     private GameObject GenerateSingleTile(float tileSize, int x, int y, int heightLevel)
     {
-        GameObject tileObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+int prefabIndex = (x + y) % tilePrefabs.Length; // lub inny sposób wyboru
+GameObject tileObject = Instantiate(tilePrefabs[prefabIndex], transform);
         tileObject.transform.parent = transform;
         tileObject.transform.localScale = new Vector3(tileSize, tileSize, tileSize); // Zmiana na sześcian
         tileObject.transform.position = new Vector3(x * tileSize, heightLevel * tileSize, y * tileSize); // Dopasowanie pozycji do rozmiaru sześcianu
-        tileObject.GetComponent<MeshRenderer>().material = tileMaterial; // Przypisanie materiału do kafelka
+int materialIndex = UnityEngine.Random.Range(0, tileMaterials.Length); // logiku od textur i tego jak się generują
+tileObject.GetComponent<MeshRenderer>().material = tileMaterials[materialIndex]; // Przypisanie materiału do kafelka
         tileObject.layer = LayerMask.NameToLayer("Tile");
+        
 
         // Generowanie filaru pod kafelkiem, jeśli jest na wyższej wysokości
         if (heightLevel > 0)
@@ -1025,67 +1055,7 @@ public class ChessBoard : MonoBehaviour
         }
         return -Vector2Int.one;
     }
-    private void PlacePlateauTransitions(int startX, int startY, int width, int height, bool isHole)
-    {
-        // Lewa krawędź plateau
-        for (int y = startY; y < startY + height; y++)
-        {
-            if (startX - 1 >= 0)
-            {
-                float hPlateau = tileHeights[startX, y];
-                float hAdjacent = tileHeights[startX - 1, y];
-                float diff = Mathf.Abs(hPlateau - hAdjacent);
-                if (diff > 0.1f)
-                {
-                    Vector3 posPlateau = tiles[startX, y].transform.position;
-                    Vector3 posAdjacent = tiles[startX - 1, y].transform.position;
-                    Vector3 transitionPos = (posPlateau + posAdjacent) / 2f;
 
-                    // Obliczamy kierunek na podstawie różnicy, zerujemy Y:
-                    Vector3 direction = posPlateau - posAdjacent;
-                    direction.y = 0f;
-                    Quaternion rot = Quaternion.LookRotation(direction, Vector3.up);
-                    // Dla lewej krawędzi dodajemy dodatkową rotację zależnie od typu:
-                    if (isHole)
-                        rot *= Quaternion.Euler(0, 180, 0);
-                    else
-                        rot *= Quaternion.Euler(0, 0, 0);
-
-                    // Instancjujemy prefabrykat
-                    Instantiate(isHole ? rampPrefab : stairsPrefab, transitionPos, rot);
-                }
-            }
-        }
-
-        // Prawa krawędź plateau
-        for (int y = startY; y < startY + height; y++)
-        {
-            if (startX + width < Tile_Count_X)
-            {
-                int rightTileX = startX + width - 1;
-                float hPlateau = tileHeights[rightTileX, y];
-                float hAdjacent = tileHeights[rightTileX + 1, y];
-                float diff = Mathf.Abs(hPlateau - hAdjacent);
-                if (diff > 0.1f)
-                {
-                    Vector3 posPlateau = tiles[rightTileX, y].transform.position;
-                    Vector3 posAdjacent = tiles[rightTileX + 1, y].transform.position;
-                    Vector3 transitionPos = (posPlateau + posAdjacent) / 2f;
-
-                    Vector3 direction = posAdjacent - posPlateau;
-                    direction.y = 0f;
-                    Quaternion rot = Quaternion.LookRotation(direction, Vector3.up);
-                    // Dla prawej krawędzi – inna korekta:
-                    if (isHole)
-                        rot *= Quaternion.Euler(0, 0, 0);
-                    else
-                        rot *= Quaternion.Euler(0, 180, 0);
-
-                    Instantiate(isHole ? rampPrefab : stairsPrefab, transitionPos, rot);
-                }
-            }
-        }
-    }
 
 
     private void SpawnAllPieces()

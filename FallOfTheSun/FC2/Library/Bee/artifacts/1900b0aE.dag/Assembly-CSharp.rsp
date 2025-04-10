@@ -433,7 +433,6 @@
 -analyzer:"C:/Program Files/Unity/Hub/Editor/6000.0.23f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.UIToolkit.SourceGenerator.dll"
 "Assets/Rocks and Boulders 2/Shaders/RotateGameObject.cs"
 "Assets/Scripts/Camera.cs"
-"Assets/Scripts/CaveEntrancePortal.cs"
 "Assets/Scripts/ChessBoard.cs"
 "Assets/Scripts/ChessPieces.cs"
 "Assets/Scripts/Dog.cs"
