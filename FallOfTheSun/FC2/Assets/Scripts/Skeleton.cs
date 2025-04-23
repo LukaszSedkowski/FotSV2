@@ -11,5 +11,6 @@ public class Skeleton : ChessPieces
         attack = 50;
         attackRange = 6;
         attackCost = 5;
+        visionRange = (attackRange + maxMovementRange) / 2;
     }
 }

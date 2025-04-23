@@ -11,6 +11,7 @@ public class Knight : ChessPieces
         attack = 40;
         attackRange = 1;
         attackCost = 2;
+        visionRange = (attackRange + maxMovementRange) / 2;
     }
     public override void TriggerPassiveAbility()
     {

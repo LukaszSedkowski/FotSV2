@@ -34,12 +34,12 @@ public class ChessBoard : MonoBehaviour
 
     private bool[,] obstacles;
 
-    private ChessPieces[,] chessPieces;
-    private ChessPieces currentlyDragging;
+    public ChessPieces[,] chessPieces;
+    public ChessPieces currentlyDragging;
     private bool[] teamIsActive;
     private Color originalColor;
-    public const int Tile_Count_X = 20;
-    public const int Tile_Count_Y = 20;
+    public const int Tile_Count_X = 40;
+    public const int Tile_Count_Y = 40;
     private float tileSize = 1.0f;
 
     private bool[,] highlightedTiles;
@@ -50,6 +50,7 @@ public class ChessBoard : MonoBehaviour
     private Vector2Int currentHover = -Vector2Int.one;
     private List<Vector2Int> highlightedTilesList = new List<Vector2Int>();
     private int currentTeam = 0; // Aktualna drużyna (zaczynamy od drużyny 0)
+    private bool[] isAIControlledTeam;
     private int numberOfTeams; // Przykładowo, ustawiamy na 4 drużyny
 
     private int p1StartX, p1StartY, p1Width, p1Height;
@@ -81,6 +82,18 @@ public class ChessBoard : MonoBehaviour
     {
         Instance = this;
         numberOfTeams = teamMaterials.Length;
+
+        isAIControlledTeam = new bool[numberOfTeams];
+
+        // Zakładamy że drużyna 1 to AI (możesz dostosować)
+        isAIControlledTeam[0] = false; // Gracz
+        isAIControlledTeam[1] = true;  // AI
+                                       // Jeśli 4 drużyny, możesz dodać więcej
+        if (AIController.Instance == null)
+        {
+            GameObject aiObj = new GameObject("AIController");
+            aiObj.AddComponent<AIController>();
+        }
         GenerateAllTiles(tileSize, Tile_Count_X, Tile_Count_Y);
         InitializeTileHeights();
         GenerateFogOfWar();
@@ -198,44 +211,10 @@ public class ChessBoard : MonoBehaviour
             }
         }
         // Zmiana tury po wciśnięciu Q
-        if (Input.GetKeyDown(KeyCode.Q))
+        if (Input.GetKeyDown(KeyCode.Q) && !isAIControlledTeam[currentTeam])
         {
-
-            int attempts = numberOfTeams; // Ograniczenie liczby prób na wypadek braku pionków u wszystkich drużyn
-            do
-            {
-                currentTeam = (currentTeam + 1) % numberOfTeams; // Przełącz na następną drużynę
-                attempts--;
-
-                CurrentPiecePanel.CurrentPiecesSetPanel(currentlyDragging);
-
-                if (!DoesTeamHavePieces(currentTeam))
-                {
-                    Debug.Log("Drużyna " + (currentTeam + 1) + " nie ma pionków. Pomijam.");
-                }
-            } while (!DoesTeamHavePieces(currentTeam) && attempts > 0);
-
-            currentlyDragging = null; // Anulowanie wyboru po zmianie tury
-
-            // Resetowanie punktów ruchu dla drużyny, która skończyła turę
-            ResetMovementRangeForTeam(currentTeam);
-
-
-            Debug.Log("Tura drużyny " + (currentTeam + 1));
-
-            SelectPieceWithLowestId(currentTeam); // Wybieranie pionka z najniższym ID
-
-            CurrentPiecePanel.CurrentPiecesSetPanel(currentlyDragging);
-
-            if (currentlyDragging != null)
-            {
-                Camera.main.GetComponent<CameraController>().SetTarget(currentlyDragging.transform);
-                HighlightPossibleMoves(currentlyDragging);
-            }
-            UpdateFogOfWar(currentlyDragging.currentX, currentlyDragging.currentY);
-            UpdatePieceVisibility();
+            ChangeTurn();
         }
-
 
         // Zmiana pionka na podstawie klawiszy od 1 do 9
         for (int i = 1; i <= 9; i++)
@@ -259,6 +238,10 @@ public class ChessBoard : MonoBehaviour
     public float[,] GetTilesHeight()
     {
         return tileHeights;
+    }
+    public bool IsObstacle(int x, int y)
+    {
+        return obstacles[x, y];
     }
     private void HealTeam(int team)
     {
@@ -409,7 +392,7 @@ public class ChessBoard : MonoBehaviour
 
 
 
-    private void HighlightPossibleMoves(ChessPieces cp)
+    public void HighlightPossibleMoves(ChessPieces cp)
     {
         ResetTileColors(); // Reset kolorów przed podświetleniem nowych
         highlightedTilesList.Clear(); // Wyczyść poprzednią listę
@@ -517,7 +500,7 @@ public class ChessBoard : MonoBehaviour
         }
     }
 
-    private void AttackEnemyPiece(int targetX, int targetY)
+    public void AttackEnemyPiece(int targetX, int targetY)
     {
         ChessPieces targetPiece = chessPieces[targetX, targetY];
 
@@ -688,7 +671,7 @@ public class ChessBoard : MonoBehaviour
 
     private bool IsValid(GameObject[,] grid, int x, int y)
     {
-        return x >= 0 && y >= 0 && x < grid.GetLength(0) && y < grid.GetLength(1) && !obstacles[x, y] && highlightedTilesList.Contains(new Vector2Int(x, y));
+        return x >= 0 && y >= 0 && x < grid.GetLength(0) && y < grid.GetLength(1) && !obstacles[x, y] /*&& highlightedTilesList.Contains(new Vector2Int(x, y))*/;
     }
 
     private List<Node> ReconstructPath(Node node)
@@ -703,8 +686,14 @@ public class ChessBoard : MonoBehaviour
         return path;
     }
 
-    private bool MoveTo(ChessPieces cp, int targetX, int targetY)
+    public bool MoveTo(ChessPieces cp, int targetX, int targetY)
     {
+        if (chessPieces[targetX, targetY] != null)
+        {
+            Debug.LogWarning($"[MoveTo] Pole ({targetX},{targetY}) zajęte! Ruch anulowany.");
+            return false;
+        }
+
         Vector2Int previousPosition = new Vector2Int(cp.currentX, cp.currentY);
 
         // Tworzenie tablicy odwiedzonych pól i zmiennej dla najkrótszego kosztu
@@ -1239,6 +1228,54 @@ tileObject.GetComponent<MeshRenderer>().material = tileMaterials[materialIndex];
             }
         }
     }
+    
+    public void ChangeTurn()
+    {
+        int attempts = numberOfTeams;
+
+        do
+        {
+            currentTeam = (currentTeam + 1) % numberOfTeams;
+            attempts--;
+
+            if (!DoesTeamHavePieces(currentTeam))
+            {
+                Debug.Log("Drużyna " + (currentTeam + 1) + " nie ma pionków. Pomijam.");
+            }
+        } while (!DoesTeamHavePieces(currentTeam) && attempts > 0);
+
+        currentlyDragging = null;
+        ResetMovementRangeForTeam(currentTeam);
+
+        Debug.Log("Tura drużyny " + (currentTeam + 1));
+
+        SelectPieceWithLowestId(currentTeam);
+        CurrentPiecePanel.CurrentPiecesSetPanel(currentlyDragging);
+        HighlightPossibleMoves(currentlyDragging);
+        UpdateFogOfWar(currentlyDragging.currentX, currentlyDragging.currentY);
+        UpdatePieceVisibility();
+
+        
+        if (isAIControlledTeam[currentTeam])
+        {
+            if (AIController.Instance != null)
+            {
+                AIController.Instance.PlayTurn(currentTeam);
+            }
+            else
+            {
+                Debug.LogError("AIController.Instance == null! Czy AIController jest w scenie?");
+            }
+        }
+    }
+    public ChessPieces GetPieceAt(int x, int y)
+    {
+        if (x >= 0 && y >= 0 && x < Tile_Count_X && y < Tile_Count_Y)
+        {
+            return chessPieces[x, y];
+        }
+        return null;
+    }
 
 }
 public class Node
@@ -1255,3 +1292,4 @@ public class Node
         Y = y;
     }
 }
+

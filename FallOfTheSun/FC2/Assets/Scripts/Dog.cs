@@ -11,5 +11,6 @@ public class Dog : ChessPieces
         attack = 10;
         attackRange = 1;
         attackCost = 5;
+        visionRange = (attackRange + maxMovementRange) / 2;
     }
 }

@@ -438,6 +438,7 @@
 "Assets/Scripts/Dog.cs"
 "Assets/Scripts/DungeonBoard.cs"
 "Assets/Scripts/GameMenagre.cs"
+"Assets/Scripts/GameWithAI/AIController.cs"
 "Assets/Scripts/HUD/TeamPanel/TeamPanel.cs"
 "Assets/Scripts/Hunter.cs"
 "Assets/Scripts/Knight.cs"

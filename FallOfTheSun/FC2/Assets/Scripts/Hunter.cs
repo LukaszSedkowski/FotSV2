@@ -11,7 +11,7 @@ public class Hunter : ChessPieces
         attack = 26;
         attackRange = 10;
         attackCost = 5;
-
+        visionRange = (attackRange+maxMovementRange)/2;
 
     }
     public override void TriggerPassiveAbility()

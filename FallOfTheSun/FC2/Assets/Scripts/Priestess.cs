@@ -11,5 +11,6 @@ public class Priestess : ChessPieces
         attack = 5;
         attackRange = 1;
         attackCost = 1;
+        visionRange = (attackRange + maxMovementRange) / 2;
     }
 }

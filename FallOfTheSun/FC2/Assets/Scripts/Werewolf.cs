@@ -11,6 +11,7 @@ public class Werewolf : ChessPieces
         attack = 30;
         attackRange = 1;
         attackCost = 5;
+        visionRange = (attackRange + maxMovementRange) / 2;
     }
     public override void TriggerPassiveAbility()
     {
