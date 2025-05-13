@@ -25,19 +25,24 @@ public class GameMenu : MonoBehaviour
 
     public static GameMenu Instance { get; private set; }
 
-    private void Awake()
+private void Awake()
+{
+    if (GameData.Instance == null)
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        GameObject obj = new GameObject("GameData");
+        obj.AddComponent<GameData>();
     }
 
+    if (Instance == null)
+    {
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+    else
+    {
+        Destroy(gameObject);
+    }
+}
     private void Start()
     {
         // Initialize dropdowns
@@ -69,8 +74,11 @@ public class GameMenu : MonoBehaviour
         }
 
         // Je�li walidacja przesz�a, czy�cimy komunikat i rozpoczynamy gr�
+
         validationText.text = "";
         DisableCamera();
+
+        GameData.Instance.CurrentGameMode = GameMode.MultiTeam;
         SceneManager.LoadScene(1);
     }
 

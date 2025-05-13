@@ -66,7 +66,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: fe12aecce76cd4744ae183ae308e9cad, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -130,6 +130,10 @@ MonoBehaviour:
   movementRange: 0
   maxMovementRange: 0
   health: 0
+  maxHealth: 0
   attack: 0
   attackRange: 0
   attackCost: 0
+  groundOffset: 0.5
+  visionRange: 3
+  hasPassiveAbility: 0

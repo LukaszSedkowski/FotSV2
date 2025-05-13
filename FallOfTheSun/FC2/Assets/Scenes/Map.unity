@@ -546,6 +546,7 @@ GameObject:
   - component: {fileID: 699370866}
   - component: {fileID: 699370865}
   - component: {fileID: 699370867}
+  - component: {fileID: 699370868}
   m_Layer: 0
   m_Name: Triangle
   m_TagString: Untagged
@@ -643,6 +644,22 @@ MonoBehaviour:
   CheckPanel: {fileID: 893375630}
   sceneChangeButton: {fileID: 845722992}
   Map: Map
+--- !u!114 &699370868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 699370864}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bffbd138e0e829a498033d1f2afb0d8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerCharacters: 
+  enemyCharacters: 
+  gameType: 0
+  CurrentGameMode: 0
 --- !u!1 &709682133
 GameObject:
   m_ObjectHideFlags: 0
@@ -976,6 +993,7 @@ MonoBehaviour:
   defaultColor: {r: 1, g: 0, b: 0, a: 1}
   specialColor: {r: 0, g: 1, b: 0, a: 1}
   isActivated: 0
+  enemyCharacters: 
 --- !u!1 &845722990
 GameObject:
   m_ObjectHideFlags: 0
@@ -1260,6 +1278,7 @@ MonoBehaviour:
   defaultColor: {r: 1, g: 0, b: 0, a: 1}
   specialColor: {r: 0, g: 1, b: 0, a: 1}
   isActivated: 0
+  enemyCharacters: 
 --- !u!1 &889916916
 GameObject:
   m_ObjectHideFlags: 0
@@ -1777,6 +1796,7 @@ MonoBehaviour:
   defaultColor: {r: 1, g: 0, b: 0, a: 1}
   specialColor: {r: 0, g: 1, b: 0, a: 1}
   isActivated: 0
+  enemyCharacters: 
 --- !u!1 &1194613000
 GameObject:
   m_ObjectHideFlags: 0
@@ -1928,6 +1948,7 @@ MonoBehaviour:
   defaultColor: {r: 1, g: 0, b: 0, a: 1}
   specialColor: {r: 0, g: 1, b: 0, a: 1}
   isActivated: 0
+  enemyCharacters: 
 --- !u!1 &1656122914
 GameObject:
   m_ObjectHideFlags: 0
@@ -2291,6 +2312,7 @@ MonoBehaviour:
   defaultColor: {r: 1, g: 0, b: 0, a: 1}
   specialColor: {r: 0, g: 1, b: 0, a: 1}
   isActivated: 0
+  enemyCharacters: 
 --- !u!1 &2076039868
 GameObject:
   m_ObjectHideFlags: 0
@@ -2442,6 +2464,7 @@ MonoBehaviour:
   defaultColor: {r: 1, g: 0, b: 0, a: 1}
   specialColor: {r: 0, g: 1, b: 0, a: 1}
   isActivated: 0
+  enemyCharacters: 
 --- !u!1 &2076761256
 GameObject:
   m_ObjectHideFlags: 0

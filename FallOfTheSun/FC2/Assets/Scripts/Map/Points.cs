@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Waypoint : MonoBehaviour
 {
@@ -11,6 +12,7 @@ public class Waypoint : MonoBehaviour
     public Color specialColor = Color.green; // Kolor na kilka dni
    public bool isActivated = false;
     private int specialDayCount = 0; // Ile dni jeszcze ma być inny kolor
+    public List<ChessPieceType> enemyCharacters = new List<ChessPieceType>();
 
     void Start()
     {
@@ -33,6 +35,25 @@ public class Waypoint : MonoBehaviour
             UpdateColor();
         }
     }
+    public void AssignRandomEnemies(int count)
+{
+    // Wybieramy losowe postacie wrogów
+    List<ChessPieceType> allEnemies = System.Enum.GetValues(typeof(ChessPieceType))
+        .Cast<ChessPieceType>()
+        .Where(t => t != ChessPieceType.None)
+        .ToList();
+
+    System.Random rng = new System.Random();
+    allEnemies = allEnemies.OrderBy(x => rng.Next()).ToList();
+
+    enemyCharacters = allEnemies.Take(count).ToList();
+
+    // Debug info
+    foreach (var enemy in enemyCharacters)
+    {
+        Debug.Log("Dodano wroga " + enemy + " do waypointa " + name);
+    }
+}
 
 public void DrawLinesToNeighbors()
 {
@@ -69,5 +90,6 @@ public void DrawLinesToNeighbors()
             rend.material.color = defaultColor;
         }
     }
+    
     
 }

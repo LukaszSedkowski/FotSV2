@@ -1,13 +1,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+
+
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    // Lista stanu pionków, które przenosimy miêdzy scenami
+    // Lista stanu pionkï¿½w, ktï¿½re przenosimy miï¿½dzy scenami
     public List<PieceData> transferredPieces = new List<PieceData>();
-
+public GameMode CurrentGameMode = GameMode.MultiTeam;
 
     private void Awake()
     {

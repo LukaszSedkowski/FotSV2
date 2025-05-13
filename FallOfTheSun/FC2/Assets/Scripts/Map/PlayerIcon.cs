@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems; 
 using UnityEngine.SceneManagement; // do zmiany sceny
-
+using System.Linq;
 
 
 
@@ -33,10 +33,15 @@ public class PlayerMovement : MonoBehaviour
     public Button sceneChangeButton; // przypisz w Inspectorze
     public string Map = "SampleScene"; // podaj nazwę sceny z Build
 
-    
+    private List<ChessPieceType> selectedCharacters;
 
 void Start()
 {
+selectedCharacters = GetRandomCharacters();
+foreach (var character in selectedCharacters)
+{
+    Debug.Log("Wylosowano postać: " + character);
+}
     if (startPoint != null)
     {
         currentWaypoint = startPoint;
@@ -125,11 +130,43 @@ void Start()
         CheckPanel.SetActive(false);
         }
     }
-public void ChangeScene()
+    public List<ChessPieceType> GetRandomCharacters(int count = 4)
 {
-    Debug.Log("Zmiana sceny na: " + Map); // Sprawdzamy, czy scena jest poprawnie wybrana
+    // Pobieramy wszystkie wartości enum poza 'None'
+    List<ChessPieceType> allCharacters = System.Enum.GetValues(typeof(ChessPieceType))
+        .Cast<ChessPieceType>()
+        .Where(t => t != ChessPieceType.None)
+        .ToList();
+
+    // Mieszamy listę
+    System.Random rng = new System.Random();
+    allCharacters = allCharacters.OrderBy(x => rng.Next()).ToList();
+
+    // Zwracamy pierwsze 'count' elementów
+    return allCharacters.Take(count).ToList();
+}
+
+void ChangeScene()
+{
+    if (selectedWaypoint == null)
+    {
+        Debug.LogError("Nie wybrano waypointa!");
+        return;
+    }
+
+    if (GameData.Instance == null)
+    {
+        Debug.LogError("GameData.Instance jest null! Upewnij się, że obiekt GameData istnieje w scenie.");
+        return;
+    }
+
+    GameData.Instance.playerCharacters = selectedCharacters;
+    GameData.Instance.enemyCharacters = selectedWaypoint.enemyCharacters;
+
+    Debug.Log("Zmiana sceny na: " + Map);
     SceneManager.LoadScene("SampleScene");
 }
+
 
     void OnMoveConfirmed()
     {
@@ -192,7 +229,7 @@ void UpdateDayUI()
     }
 
     // Losowanie waypointów zaczyna się od 1 dnia, więc sprawdzamy, czy dayCount > 0
-    if (dayCount > 0 && dayCount % 2 == 0) // Co 5 dni losujemy nowe waypointy
+    if (dayCount > 0 && dayCount % 1 == 0) // Co 5 dni losujemy nowe waypointy
     {
         ActivateRandomWaypoints(2, 3); // Wybierz losowo 2 waypointy na 3 dni
     }
@@ -211,7 +248,7 @@ void ActivateRandomWaypoints(int count, int days)
 
     List<Waypoint> shuffledWaypoints = new List<Waypoint>(waypoints);
     System.Random rng = new System.Random();
-    
+
     // Tasujemy listę waypointów
     for (int i = 0; i < shuffledWaypoints.Count; i++)
     {
@@ -228,6 +265,7 @@ void ActivateRandomWaypoints(int count, int days)
         {
             shuffledWaypoints[i].ActivateSpecialColor(days);
             shuffledWaypoints[i].isActivated = true;
+            shuffledWaypoints[i].AssignRandomEnemies(3); // Dodaj 3 losowych przeciwników
         }
         else
         {
@@ -235,6 +273,7 @@ void ActivateRandomWaypoints(int count, int days)
         }
     }
 }
+
 
 
 

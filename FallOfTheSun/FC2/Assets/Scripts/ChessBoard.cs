@@ -15,6 +15,9 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private Material hoverMaterial; // Materiał do podświetlenia
     [SerializeField] private Material pillarMaterial; // Materiał dla filarów
     [SerializeField] private GameObject[] tilePrefabs;
+        [SerializeField] private GameObject[] gameEdgePrefabs;
+        [SerializeField] private GameObject[] fencePrefabs;
+
 
     [Header("Pref")]
     [SerializeField] private GameObject[] prefabs;
@@ -66,6 +69,7 @@ public class ChessBoard : MonoBehaviour
 
     public static ChessBoard Instance { get; private set; }
 
+
     private static readonly Dictionary<ChessPieceType, float> groundOffsets = new Dictionary<ChessPieceType, float>
     {
         { ChessPieceType.Ogre, 1.5f },
@@ -84,6 +88,14 @@ public class ChessBoard : MonoBehaviour
         numberOfTeams = teamMaterials.Length;
 
         isAIControlledTeam = new bool[numberOfTeams];
+//fragment od tryby gry a raczej żeby się nie zbugowało nic 
+
+if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
+{
+    List<ChessPieceType> playerCharacters = GameData.Instance.playerCharacters;
+    List<ChessPieceType> enemyCharacters = GameData.Instance.enemyCharacters;
+}
+
 
         // Zakładamy że drużyna 1 to AI (możesz dostosować)
         isAIControlledTeam[0] = false; // Gracz
@@ -993,10 +1005,82 @@ for (int x = 0; x < tileCountX; x++)
 
 
 
-
-
+GenerateBorderPillars();
+AddFenceAroundMap(tileCountX, tileCountY);
 
     }
+
+
+private void AddFenceAroundMap(int tileCountX, int tileCountY)
+{
+    for (int x = -1; x <= tileCountX; x++)
+    {
+        for (int y = -1; y <= tileCountY; y++)
+        {
+            bool isOuterEdge =
+                (x == -1 || x == tileCountX || y == -1 || y == tileCountY) &&
+                !(x < -1 || x > tileCountX || y < -1 || y > tileCountY);
+
+            if (isOuterEdge)
+            {
+                // Ustal wysokość na podstawie sąsiadującego kafelka w planszy (jeśli istnieje)
+                int innerX = Mathf.Clamp(x, 0, tileCountX - 1);
+                int innerY = Mathf.Clamp(y, 0, tileCountY - 1);
+                float height = 6f;
+
+                Vector3 position = new Vector3(x * tileSize, height, y * tileSize);
+
+                // Wybierz losowy prefab płotka
+                GameObject fencePrefab = fencePrefabs[UnityEngine.Random.Range(0, fencePrefabs.Length)];
+                GameObject fence = Instantiate(fencePrefab, position, Quaternion.identity, transform);
+
+                // Opcjonalne: obróć w zależności od krawędzi
+                if (x == -1) fence.transform.rotation = Quaternion.Euler(0, 90, 0);
+                else if (x == tileCountX) fence.transform.rotation = Quaternion.Euler(0, -90, 0);
+                else if (y == -1) fence.transform.rotation = Quaternion.Euler(0, 0, 0);
+                else if (y == tileCountY) fence.transform.rotation = Quaternion.Euler(0, 180, 0);
+            }
+        }
+    }
+}
+
+private void GenerateBorderPillars()
+{
+    int tileCountX = tiles.GetLength(0);
+    int tileCountY = tiles.GetLength(1);
+    float pillarHeight = 5.0f; // dopasuj do swojego prefab'u
+    int borderWidth=35;
+
+    for (int x = -borderWidth; x < tileCountX + borderWidth; x++)
+    {
+        for (int y = -borderWidth; y < tileCountY + borderWidth; y++)
+        {
+            // sprawdzamy, czy kafelek znajduje się *poza* planszą
+            bool isOutside = x < 0 || y < 0 || x >= tileCountX || y >= tileCountY;
+
+            // sprawdzamy, czy jesteśmy w obszarze należącym do granicy
+            bool isInBorderArea = x < 0 + borderWidth || y < 0 + borderWidth ||
+                                  x >= tileCountX - borderWidth || y >= tileCountY - borderWidth;
+
+            if (isOutside && isInBorderArea)
+            {
+                Vector3 pillarPosition = new Vector3(x * tileSize, pillarHeight, y * tileSize);
+                if (gameEdgePrefabs.Length > 0 && gameEdgePrefabs[0] != null)
+                {
+                    Instantiate(gameEdgePrefabs[0], pillarPosition, Quaternion.identity, transform);
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -1047,30 +1131,62 @@ tileObject.GetComponent<MeshRenderer>().material = tileMaterials[materialIndex];
 
 
 
-    private void SpawnAllPieces()
+private void SpawnAllPieces()
+{
+    chessPieces = new ChessPieces[Tile_Count_X, Tile_Count_Y];
+
+    if(GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
     {
-        chessPieces = new ChessPieces[Tile_Count_X, Tile_Count_Y];
-
-        int whiteTeam = 0, blackTeam = 1, redTeam = 2, blueTeam = 3;
-        int whiteId = 1, blackId = 1, redId = 1, blueId = 1; // ID dla obu drużyn zaczynają się od 1
-        int i = 0, team = 0;
-        
-        foreach (var pieces in GameMenu.Instance.selectedCharacters)
-        {
-            int pieceID = 1;
-            foreach (var piece in pieces)
-            {
-
-                chessPieces[i, 0] = SpawnSinglePiece(piece, team, pieceID++);
-                Debug.Log("Stworzony pionek" + piece);
-                i++;
-            }
-            team++;
-        }
-
+        SpawnSinglePlayerPieces();
+    }
+    else if (GameData.Instance.CurrentGameMode == GameMode.MultiTeam)
+    {
+        SpawnMultiTeamPieces();
     }
 
-    private ChessPieces SpawnSinglePiece(ChessPieceType type, int team, int id)
+}
+
+
+private void SpawnSinglePlayerPieces()
+{
+    int whiteTeam = 0;
+    int blackTeam = 1;
+    int whiteId = 1;
+    int blackId = 1;
+    int x = 0;
+
+    foreach (var piece in GameData.Instance.playerCharacters)
+    {
+        chessPieces[x, 0] = SpawnSinglePiece(piece, whiteTeam, whiteId++);
+        x++;
+    }
+
+    x = 0;
+
+    foreach (var piece in GameData.Instance.enemyCharacters)
+    {
+        chessPieces[x, Tile_Count_Y - 1] = SpawnSinglePiece(piece, blackTeam, blackId++);
+        x++;
+    }
+}
+private void SpawnMultiTeamPieces()
+{
+    int i = 0, team = 0;
+
+    foreach (var pieces in GameMenu.Instance.selectedCharacters)
+    {
+        int pieceID = 1;
+        foreach (var piece in pieces)
+        {
+            chessPieces[i, 0] = SpawnSinglePiece(piece, team, pieceID++);
+            Debug.Log("Stworzony pionek " + piece + " dla drużyny " + team);
+            i++;
+        }
+        team++;
+    }
+}
+
+ private ChessPieces SpawnSinglePiece(ChessPieceType type, int team, int id)
     {
         ChessPieces cp = Instantiate(prefabs[(int)type - 1], transform).GetComponent<ChessPieces>();
         cp.Init(type, team, id); // Przekazanie ID
