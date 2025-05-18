@@ -11,7 +11,7 @@ public class Waypoint : MonoBehaviour
     public Color defaultColor = Color.red;
     public Color specialColor = Color.green; // Kolor na kilka dni
    public bool isActivated = false;
-    private int specialDayCount = 0; // Ile dni jeszcze ma być inny kolor
+    public int specialDayCount = 0; // Ile dni jeszcze ma być inny kolor
     public List<ChessPieceType> enemyCharacters = new List<ChessPieceType>();
 
     void Start()
@@ -79,17 +79,20 @@ public void DrawLinesToNeighbors()
 }
 
 
-    private void UpdateColor()
+private void UpdateColor()
+{
+    if (specialDayCount > 0)
     {
-        if (specialDayCount > 0)
-        {
-            rend.material.color = specialColor;
-        }
-        else
-        {
-            rend.material.color = defaultColor;
-        }
+        rend.material.color = specialColor;
     }
+    else
+    {
+        rend.material.color = defaultColor;
+        enemyCharacters.Clear(); // Usunięcie wrogów
+        isActivated = false;
+        Debug.Log("Usunięto wrogów z waypointa " + name);
+    }
+}
     
     
 }

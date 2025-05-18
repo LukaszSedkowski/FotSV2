@@ -25,6 +25,9 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private GameObject obstaclePrefab;
     [SerializeField] private GameObject obstaclePrefabRock;
 
+    [Header("Kryj")]
+    [SerializeField] private List<GameObject> hideoutPrefabs;
+    private List<Vector2Int> hideoutPositions = new List<Vector2Int>();
 
     [Header("HUD")]
     [SerializeField] private TeamPanel CurrentPiecePanel;
@@ -116,6 +119,7 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
 
         // Dodajemy przeszkody w losowych miejscach (przykład)
         AddRandomObstacles(5);
+        AddRandomHideouts(10);
         // Wybór pionka z ID równym 1 na początku gry
         SelectPieceById(1, currentTeam);
 
@@ -179,6 +183,7 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
                     }
                     else if (chessPieces[hitPosition.x, hitPosition.y].team == currentTeam)
                     {
+
                         currentlyDragging = chessPieces[hitPosition.x, hitPosition.y];
                         Camera.main.GetComponent<CameraController>().SetTarget(currentlyDragging.transform);
                     }
@@ -222,6 +227,12 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
                 }
             }
         }
+        if (Input.GetMouseButtonDown(0))
+{
+    Ray ray2 = currentCamera.ScreenPointToRay(Input.mousePosition);
+    
+}
+
         // Zmiana tury po wciśnięciu Q
         if (Input.GetKeyDown(KeyCode.Q) && !isAIControlledTeam[currentTeam])
         {
@@ -243,6 +254,39 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
 
         currentPath.Clear();
     }
+private void HideCharacter(ChessPieces piece)
+{
+    // Ukryj model 3D (mesh)
+    var meshRenderers = piece.GetComponentsInChildren<MeshRenderer>();
+    foreach (var renderer in meshRenderers)
+    {
+        renderer.enabled = false;
+    }
+
+    Debug.Log($"Pionek {piece.name} schowany w kryjówce.");
+}
+private void UnHideCharacter(ChessPieces piece)
+{
+    // Ukryj model 3D (mesh)
+    var meshRenderers = piece.GetComponentsInChildren<MeshRenderer>();
+    foreach (var renderer in meshRenderers)
+    {
+        renderer.enabled = true;
+    }
+
+}
+private bool IsOnHideoutTile(ChessPieces piece)
+{
+    if (piece == null) return false;
+
+    int x = piece.currentX;
+    int y = piece.currentY;
+
+    if (x < 0 || y < 0 || x >= Tile_Count_X || y >= Tile_Count_Y) return false;
+
+    GameObject tile = tiles[x, y];
+    return tile != null && tile.CompareTag("Hideout");
+}
     public GameObject[,] GetTiles()
     {
         return tiles;
@@ -752,47 +796,72 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
     }
 
     private IEnumerator MovePieceAlongPath(ChessPieces cp, List<Node> path)
+{
+    float moveDuration = 0.5f;
+    Vector3 startPosition = cp.transform.position;
+
+    // Sprawdź, czy pionek zaczyna na kryjówce
+    bool wasOnHideout = IsOnHideoutTile(cp);
+
+    for (int i = 1; i < path.Count; i++)
     {
-        float moveDuration = 0.5f; // Możesz dostosować czas trwania ruchu
+        Vector2Int currentPos = new Vector2Int(path[i - 1].X, path[i - 1].Y);
+        Vector2Int nextPos = new Vector2Int(path[i].X, path[i].Y);
 
-        Vector3 startPosition = cp.transform.position;
+        Vector3 targetPosition = GetTileCenter(nextPos.x, nextPos.y, cp);
+        float elapsedTime = 0f;
 
+        // Aktualizuj pozycję w tablicy pionków
+        cp.currentX = nextPos.x;
+        cp.currentY = nextPos.y;
 
-        for (int i = 1; i < path.Count; i++)
+        UpdateFogOfWar(nextPos.x, nextPos.y);
+
+        // Sprawdź, czy pionek właśnie wchodzi lub wychodzi z kryjówki
+        bool isOnHideout = IsOnHideoutTile(cp);
+        if (wasOnHideout && !isOnHideout)
         {
-            Vector2Int currentPos = new Vector2Int(path[i - 1].X, path[i - 1].Y);
-            Vector2Int nextPos = new Vector2Int(path[i].X, path[i].Y);
-
-            // Oblicz pozycję docelową
-            Vector3 targetPosition = GetTileCenter(nextPos.x, nextPos.y, cp);
-            float elapsedTime = 0f;
-            UpdateFogOfWar(nextPos.x, nextPos.y);
-            UpdatePieceVisibility();
-            while (elapsedTime < moveDuration)
-            {
-                cp.transform.position = Vector3.Lerp(startPosition, targetPosition, elapsedTime / moveDuration);
-                elapsedTime += Time.deltaTime;
-                yield return null;
-            }
-
-            // Upewnij się, że pionek osiągnął dokładnie docelową pozycję
-            cp.transform.position = targetPosition;
-
-            // Przejdź do następnego punktu
-            startPosition = targetPosition;
+            // Wychodzi z kryjówki - odsłoń pionek
+            UnHideCharacter(cp);
         }
-        // Po zakończeniu animacji popraw pozycję pionka za pomocą bounding boxa
-        PositionSinglePiece(cp.currentX, cp.currentY);
+        else if (!wasOnHideout && isOnHideout)
+        {
+            // Wchodzi do kryjówki - schowaj pionek
+            HideCharacter(cp);
+        }
+        wasOnHideout = isOnHideout;
 
-        // Po zakończeniu ruchu czyścimy trasę, aby nie była widoczna stale
-        currentPath.Clear();
+        UpdatePieceVisibility();
 
-        // Możesz też przywrócić domyślne kolory kafelków
-        ResetTileColors();
+        while (elapsedTime < moveDuration)
+        {
+            cp.transform.position = Vector3.Lerp(startPosition, targetPosition, elapsedTime / moveDuration);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
 
-        // Po zakończeniu ruchu, zaktualizuj planszę
-        Debug.Log($"Pionek dotarł na {path[path.Count - 1]}. Aktualizacja pozycji na planszy.");
+        cp.transform.position = targetPosition;
+        startPosition = targetPosition;
     }
+
+    PositionSinglePiece(cp.currentX, cp.currentY);
+    currentPath.Clear();
+    ResetTileColors();
+
+    // Na koniec upewnij się, że pionek jest ukryty lub odkryty zgodnie z miejscem
+    if (IsOnHideoutTile(cp))
+    {
+        HideCharacter(cp);
+    }
+    else
+    {
+        UnHideCharacter(cp);
+    }
+
+    Debug.Log($"Pionek dotarł na {path[path.Count - 1]}. Aktualizacja pozycji na planszy.");
+}
+
+
 
 
     private IEnumerator MovePieceWithAnimation(ChessPieces cp, Vector2Int startPos, Vector2Int targetPos)
@@ -824,6 +893,8 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
         // Po zakończeniu animacji, możesz również zaktualizować inne elementy, jak np. punkty ruchu
         Debug.Log($"Pionek dotarł na ({targetPos.x}, {targetPos.y}).");
     }
+
+
 
     private void SelectPieceById(int id, int teamId)
     {
@@ -1073,17 +1144,6 @@ private void GenerateBorderPillars()
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
     private GameObject GenerateSingleTile(float tileSize, int x, int y, int heightLevel)
@@ -1392,6 +1452,47 @@ private void SpawnMultiTeamPieces()
         }
         return null;
     }
+
+
+
+private void AddRandomHideouts(int count)
+{
+    int tries = 0;
+    int maxTries = 1000;
+
+    while (hideoutPositions.Count < count && tries < maxTries)
+    {
+        int x = UnityEngine.Random.Range(0, Tile_Count_X);
+        int y = UnityEngine.Random.Range(0, Tile_Count_Y);
+
+        Vector2Int pos = new Vector2Int(x, y);
+
+        // Sprawdź czy pole nie jest już kryjówką i nie jest przeszkodą
+        if (!hideoutPositions.Contains(pos) && !obstacles[x, y])
+        {
+            hideoutPositions.Add(pos);
+
+            // Ustaw tag "Hideout" na kafelku
+            tiles[x, y].tag = "Hideout";
+
+            // Zmień kolor kafelka na zielony
+
+            // Losuj prefab do instancji
+            int prefabIndex = UnityEngine.Random.Range(0, hideoutPrefabs.Count);
+            GameObject prefabToSpawn = hideoutPrefabs[prefabIndex];
+
+            // Pobierz pozycję kafelka
+            Vector3 spawnPosition = tiles[x, y].transform.position;
+
+            // Opcjonalnie możesz podnieść obiekt nieco ponad kafelek (np. y + 0.5f)
+            spawnPosition.y += 0.5f;
+
+            // Stwórz instancję obiektu w scenie
+            Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+        }
+        tries++;
+    }
+}
 
 }
 public class Node

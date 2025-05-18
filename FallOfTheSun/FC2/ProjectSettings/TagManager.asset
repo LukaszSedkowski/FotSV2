@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Priestess
   - Hunter
+  - Hideout
   layers:
   - Default
   - TransparentFX

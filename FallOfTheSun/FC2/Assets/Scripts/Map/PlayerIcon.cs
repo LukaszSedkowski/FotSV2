@@ -231,7 +231,7 @@ void UpdateDayUI()
     // Losowanie waypointów zaczyna się od 1 dnia, więc sprawdzamy, czy dayCount > 0
     if (dayCount > 0 && dayCount % 1 == 0) // Co 5 dni losujemy nowe waypointy
     {
-        ActivateRandomWaypoints(2, 3); // Wybierz losowo 2 waypointy na 3 dni
+        ActivateRandomWaypoints(2, 1); // Wybierz losowo 2 waypointy na 1 dni
     }
 }
 
