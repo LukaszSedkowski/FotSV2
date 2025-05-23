@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum ChessPieceType
@@ -15,6 +16,10 @@ public enum ChessPieceType
 
 public class ChessPieces : MonoBehaviour
 {
+    [Header("Active Abilities")]
+    public List<Ability> abilities = new List<Ability>();
+
+
     public int team;               // Drużyna (0 lub 1)
     public int currentX;           // Aktualna pozycja X
     public int currentY;           // Aktualna pozycja Y
@@ -54,6 +59,19 @@ public class ChessPieces : MonoBehaviour
 
     public virtual void TriggerPassiveAbility()
     {
+    }
+    public void UseAbility(int index)
+    {
+        Debug.Log($"[UseAbility] Called on {this.type} with index={index}");
+        if (index >= 0 && index < abilities.Count)
+        {
+            Debug.Log($"[UseAbility] Executing \"{abilities[index].abilityName}\"");
+            abilities[index].ExecuteAction(this);
+        }
+        else
+        {
+            Debug.LogWarning($"[UseAbility] Invalid ability index {index} on {this.type}");
+        }
     }
 
 }

@@ -6,6 +6,7 @@ using System.Linq;
 using System;
 using static UnityEditor.Experimental.GraphView.GraphView;
 using UnityEngine.ProBuilder.Shapes;
+using UnityEngine.EventSystems;
 
 
 public class ChessBoard : MonoBehaviour
@@ -31,6 +32,7 @@ public class ChessBoard : MonoBehaviour
 
     [Header("HUD")]
     [SerializeField] private TeamPanel CurrentPiecePanel;
+    [SerializeField] public SkillsPanel skillsPanel;
 
     [Header("Fog")]
     [SerializeField] private GameObject prefabFog;
@@ -157,16 +159,14 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
             if (currentHover != hitPosition)
             {
                 if (currentHover != -Vector2Int.one)
-                {
                     tiles[currentHover.x, currentHover.y].GetComponent<MeshRenderer>().material.color = Color.white;
-                    currentHover = -Vector2Int.one;
 
-                    // Przywróć podświetlone pola
-                    ReapplyHighlightedTiles();
-                    HighLightPath((hitPosition.x, hitPosition.y));
-                }
+                // przelicz i podświetl zasięg
+                HighlightPossibleMoves(currentlyDragging);
 
-                // Zmieniamy kolor na żółty
+                currentPath.Clear();
+                HighLightPath((hitPosition.x, hitPosition.y));
+
                 tiles[hitPosition.x, hitPosition.y].GetComponent<MeshRenderer>().material.color = Color.red;
                 currentHover = hitPosition;
             }
@@ -175,6 +175,11 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
             // Wybieranie i przenoszenie pionka
             if (Input.GetMouseButtonDown(0))
             {
+                if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                {
+                    // jesteśmy nad UI — zignoruj ruch pionkiem
+                    return;
+                }
                 if (chessPieces[hitPosition.x, hitPosition.y] != null)
                 {
                     if (currentlyDragging == chessPieces[hitPosition.x, hitPosition.y])
@@ -186,6 +191,8 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
 
                         currentlyDragging = chessPieces[hitPosition.x, hitPosition.y];
                         Camera.main.GetComponent<CameraController>().SetTarget(currentlyDragging.transform);
+
+                        skillsPanel.SetCurrentPiece(currentlyDragging);
                     }
                     else
                     {
@@ -213,7 +220,7 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
             tiles[currentHover.x, currentHover.y].GetComponent<MeshRenderer>().material.color = Color.white;
             currentHover = -Vector2Int.one;
         }
-        if (Input.GetKeyDown(KeyCode.Space))
+        /*if (Input.GetKeyDown(KeyCode.Space))
         {
             if (currentlyDragging != null && currentlyDragging.type == ChessPieceType.Priestess)
             {
@@ -226,7 +233,8 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
                     HighlightPossibleMoves(currentlyDragging);
                 }
             }
-        }
+        }*/
+
         if (Input.GetMouseButtonDown(0))
 {
     Ray ray2 = currentCamera.ScreenPointToRay(Input.mousePosition);
@@ -254,7 +262,15 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
 
         currentPath.Clear();
     }
-private void HideCharacter(ChessPieces piece)
+    
+
+    void OnSelectPiece(ChessPieces piece)
+    {
+        Debug.Log($"[SkillsPanel] currentPiece ustawione na {piece.type}");
+        currentlyDragging = piece;
+        skillsPanel.SetCurrentPiece(piece);
+    }
+    private void HideCharacter(ChessPieces piece)
 {
     // Ukryj model 3D (mesh)
     var meshRenderers = piece.GetComponentsInChildren<MeshRenderer>();
@@ -563,29 +579,32 @@ private bool IsOnHideoutTile(ChessPieces piece)
         // Sprawdzenie, czy cel to przeciwnik
         if (targetPiece.team != currentlyDragging.team)
         {
+            // Weryfikacja, czy mamy wystarczająco ruchu na atak
             if (currentlyDragging.movementRange < currentlyDragging.attackCost)
             {
                 Debug.Log("Za mało ruchu, aby wykonać atak.");
                 return;
             }
-            // Obliczanie odległości między pionkiem a celem, uwzględniając wysokość
+
+            // Obliczanie odległości z uwzględnieniem różnicy wysokości
             float distance = Mathf.Sqrt(
                 Mathf.Pow(currentlyDragging.currentX - targetPiece.currentX, 2) +
                 Mathf.Pow(currentlyDragging.currentY - targetPiece.currentY, 2) +
                 Mathf.Pow(tileHeights[currentlyDragging.currentX, currentlyDragging.currentY] - tileHeights[targetX, targetY], 2)
             );
             distance = Mathf.Round(distance * 100f) / 100f;
-            // Sprawdzenie, czy odległość jest mniejsza lub równa zasięgowi ataku
-            if (distance <= currentlyDragging.attackRange) // Zakładam, że masz pole attackRange w ChessPieces
+
+            // Sprawdzenie, czy cel jest w zasięgu
+            if (distance <= currentlyDragging.attackRange)
             {
-                // Sprawdzamy, czy ruch na skos nie wykracza poza dozwolony zasięg
+                // (opcjonalnie) jeszcze raz upewniamy się, że nie atakujemy poza zasięgiem ukośnym
                 if (distance > currentlyDragging.attackRange)
                 {
                     Debug.Log($"Cel poza zasięgiem ataku. Odległość: {distance}");
                     return;
                 }
 
-                // Sprawdzanie, czy atakowany pionek jest w odległości 1 od przeszkody
+                // Sprawdzamy przeszkody i ewentualnie zmniejszamy damage
                 bool isNearObstacle = false;
                 int[] dx = { 1, -1, 0, 0 };
                 int[] dy = { 0, 0, 1, -1 };
@@ -603,28 +622,35 @@ private bool IsOnHideoutTile(ChessPieces piece)
                         }
                     }
                 }
-
-                // Sprawdzanie, czy przeszkoda stoi na drodze
                 bool isObstacleBetween = IsObstacleBetween(currentlyDragging, targetPiece);
 
-                // Zmniejszenie obrażeń, jeśli oba warunki są spełnione
-                int damage = currentlyDragging.attack; // Zakładam, że masz attackDamage w ChessPieces
+                // Podstawowe obrażenia
+                int damage = currentlyDragging.attack;
+
+                // *** TU DODAJEMY STRONG STRIKE BONUS ***
+                if (currentlyDragging is Hunter hunter && hunter.ConsumeStrongStrike())
+                {
+                    damage += hunter.extraDamage;
+                    Debug.Log($"{hunter.type} uses Strong Strike! +{hunter.extraDamage} bonus damage.");
+                }
+
+                // Obniżenie obrażeń za przeszkodę, jeśli oba warunki
                 if (isNearObstacle && isObstacleBetween)
                 {
-                    damage -= 4;
-                    damage = Mathf.Max(damage, 0); // Upewniamy się, że obrażenia nie będą ujemne
+                    damage = Mathf.Max(damage - 4, 0);
                     Debug.Log("Obrażenia zmniejszone o 4 z powodu przeszkody.");
                 }
 
                 // Zastosowanie obrażeń
-                targetPiece.health -= damage; // Zakładam, że masz pole health w ChessPieces
+                targetPiece.health -= damage;
+                Debug.Log($"Zaatakowano pionek przeciwnika. Zadano {damage} obrażeń. Pozostałe zdrowie: {targetPiece.health}. Zasięg: {distance}");
 
-                Debug.Log($"Zaatakowano pionek przeciwnika. Zadano {damage} obrażeń. Pozostałe zdrowie: {targetPiece.health}. zasięg - {distance}");
-                currentlyDragging.movementRange = currentlyDragging.movementRange - currentlyDragging.attackCost;
+                // Zużycie ruchu i ewentualne pasywki
+                currentlyDragging.movementRange -= currentlyDragging.attackCost;
                 currentlyDragging.TriggerPassiveAbility();
                 HighlightPossibleMoves(currentlyDragging);
 
-                // Sprawdzenie, czy pionek został zniszczony
+                // Usunięcie pionka, jeśli zdrowie <= 0
                 if (targetPiece.health <= 0)
                 {
                     Destroy(targetPiece.gameObject);
@@ -638,6 +664,7 @@ private bool IsOnHideoutTile(ChessPieces piece)
             }
         }
     }
+
 
     private void InitializeTileHeights()
     {
