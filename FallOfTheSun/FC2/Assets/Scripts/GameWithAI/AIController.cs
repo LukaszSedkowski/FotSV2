@@ -31,14 +31,40 @@ public class AIController : MonoBehaviour
 
             ChessBoard.Instance.currentlyDragging = piece;
 
-            ChessBoard.Instance.HighlightPossibleMoves(piece);
-            yield return new WaitForSeconds(0.3f);
-
             ChessPieces target = FindBestTarget(piece);
             if (target == null) continue;
 
-            // Etap 1: próbujemy od razu zaatakowaæ
             float dist = Vector2Int.Distance(
+                new Vector2Int(piece.currentX, piece.currentY),
+                new Vector2Int(target.currentX, target.currentY)
+            );
+
+            // --- RUCH AI ---
+            if (dist > piece.attackRange || piece.movementRange < piece.attackCost)
+            {
+                Vector2Int? targetPos = FindAttackPosition(piece, target);
+
+                if (targetPos.HasValue)
+                {
+                    List<Node> path = ChessBoard.Instance.AStarPathFind(
+                        ChessBoard.Instance.GetTiles(),
+                        (piece.currentX, piece.currentY),
+                        (targetPos.Value.x, targetPos.Value.y)
+                    );
+
+                    if (path.Count > 1)
+                    {
+                        // PRZED rozpoczêciem ruchu: sprawdŸ czy piece jest widoczny
+                        bool wasVisible = piece.IsVisibleToPlayer();
+
+                        // Zacznij coroutine ruchu
+                        yield return ChessBoard.Instance.StartCoroutine(MovePieceAndHandleCamera(piece, path, wasVisible));
+                    }
+                }
+            }
+
+            // --- ATAK AI ---
+            dist = Vector2Int.Distance(
                 new Vector2Int(piece.currentX, piece.currentY),
                 new Vector2Int(target.currentX, target.currentY)
             );
@@ -47,44 +73,45 @@ public class AIController : MonoBehaviour
             {
                 ChessBoard.Instance.AttackEnemyPiece(target.currentX, target.currentY);
                 yield return new WaitForSeconds(0.4f);
-                continue; // koniec tej jednostki
-            }
-
-            // Etap 2: szukamy miejsca z którego mo¿na zaatakowaæ
-            Vector2Int? targetPos = FindAttackPosition(piece, target);
-
-            if (targetPos.HasValue)
-            {
-                List<Node> path = ChessBoard.Instance.AStarPathFind(
-                    ChessBoard.Instance.GetTiles(),
-                    (piece.currentX, piece.currentY),
-                    (targetPos.Value.x, targetPos.Value.y)
-                );
-
-                if (path.Count > 1)
-                {
-                    Node moveTarget = path[Mathf.Min(piece.movementRange, path.Count - 1)];
-                    ChessBoard.Instance.MoveTo(piece, moveTarget.X, moveTarget.Y);
-                    yield return new WaitForSeconds(0.6f);
-                }
-
-                // Etap 3: po ruchu sprawdzamy ponownie zasiêg ataku
-                dist = Vector2Int.Distance(
-                    new Vector2Int(piece.currentX, piece.currentY),
-                    new Vector2Int(target.currentX, target.currentY)
-                );
-
-                if (dist <= piece.attackRange && piece.movementRange >= piece.attackCost)
-                {
-                    ChessBoard.Instance.AttackEnemyPiece(target.currentX, target.currentY);
-                    yield return new WaitForSeconds(0.4f);
-                }
             }
         }
 
         yield return new WaitForSeconds(1f);
-        ChessBoard.Instance.ChangeTurn(); // zakoñcz turê
+        ChessBoard.Instance.ChangeTurn();
     }
+
+    // NOWA METODA (dodaj j¹ do AIController)
+    private IEnumerator MovePieceAndHandleCamera(ChessPieces piece, List<Node> path, bool wasVisibleAtStart)
+    {
+        var cameraController = Camera.main.GetComponent<CameraController>();
+        bool cameraSwitched = false;
+
+        for (int i = 1; i < path.Count; i++)
+        {
+            Vector2Int nextPos = new Vector2Int(path[i].X, path[i].Y);
+            // Zrób faktyczny ruch pionka (ten fragment skopiuj z ChessBoard.MovePieceAlongPath)
+
+            // Tutaj fragment animacji ruchu pionka – najlepiej wywo³aæ coroutine z ChessBoard
+            yield return ChessBoard.Instance.StartCoroutine(
+                ChessBoard.Instance.MovePieceAlongPathStep(piece, nextPos) // Musisz dodaæ tak¹ metodê, która wykonuje jeden krok
+            );
+
+            // W TRAKCIE ruchu: sprawdŸ czy pionek wszed³ w pole widzenia gracza
+            if (!cameraSwitched && piece.IsVisibleToPlayer())
+            {
+                cameraController.SetTarget(piece.transform);
+                cameraSwitched = true;
+            }
+        }
+
+        // Po zakoñczonym ruchu wróæ kamer¹ na ostatni pionek gracza
+        if (cameraSwitched && ChessBoard.Instance.lastPlayerPiece != null)
+        {
+            yield return new WaitForSeconds(0.5f);
+            cameraController.SetTarget(ChessBoard.Instance.lastPlayerPiece.transform);
+        }
+    }
+
 
     private List<ChessPieces> GetTeamPieces(int teamId)
     {

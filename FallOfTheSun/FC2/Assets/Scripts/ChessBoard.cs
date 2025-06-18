@@ -37,13 +37,15 @@ public class ChessBoard : MonoBehaviour
     [Header("Fog")]
     [SerializeField] private GameObject prefabFog;
 
-    private GameObject[,] fogTiles;
+    public GameObject[,] fogTiles;
     private float[,] TileWarFogHeight;
 
     private bool[,] obstacles;
 
     public ChessPieces[,] chessPieces;
     public ChessPieces currentlyDragging;
+    public ChessPieces lastPlayerPiece;
+
     private bool[] teamIsActive;
     private Color originalColor;
     public const int Tile_Count_X = 40;
@@ -175,6 +177,16 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
             // Wybieranie i przenoszenie pionka
             if (Input.GetMouseButtonDown(0))
             {
+                if (isAIControlledTeam[currentTeam])
+                {
+                    Debug.Log("To tura komputera. Nie możesz wybrać jego pionka.");
+                    return;
+                }
+                if (currentlyDragging != null && currentlyDragging.isMoving)
+                {
+                    Debug.Log("Ruch w toku. Poczekaj na zakończenie.");
+                    return;
+                }
                 if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
                 {
                     // jesteśmy nad UI — zignoruj ruch pionkiem
@@ -188,8 +200,17 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
                     }
                     else if (chessPieces[hitPosition.x, hitPosition.y].team == currentTeam)
                     {
+                        if (isAIControlledTeam[currentTeam])
+                        {
+                            Debug.Log("To tura komputera. Nie możesz wybrać jego pionka.");
+                            return;
+                        }
 
                         currentlyDragging = chessPieces[hitPosition.x, hitPosition.y];
+                        if (currentlyDragging.team == currentTeam && !isAIControlledTeam[currentTeam])
+                        {
+                            lastPlayerPiece = currentlyDragging;
+                        }
                         Camera.main.GetComponent<CameraController>().SetTarget(currentlyDragging.transform);
 
                         skillsPanel.SetCurrentPiece(currentlyDragging);
@@ -203,6 +224,12 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
                 }
                 else if (currentlyDragging != null)
                 {
+                    if (currentlyDragging.team != currentTeam)
+                    {
+                        Debug.Log("Nie możesz ruszać pionkiem innej drużyny.");
+                        return;
+                    }
+
                     Vector2Int previousPosition = new Vector2Int(currentlyDragging.currentX, currentlyDragging.currentY);
                     bool validMove = MoveTo(currentlyDragging, hitPosition.x, hitPosition.y);
                     if (!validMove)
@@ -220,20 +247,6 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
             tiles[currentHover.x, currentHover.y].GetComponent<MeshRenderer>().material.color = Color.white;
             currentHover = -Vector2Int.one;
         }
-        /*if (Input.GetKeyDown(KeyCode.Space))
-        {
-            if (currentlyDragging != null && currentlyDragging.type == ChessPieceType.Priestess)
-            {
-                if (currentlyDragging.maxMovementRange == currentlyDragging.movementRange)
-                {
-
-                    HealTeam(currentTeam);
-                    Debug.Log($"Healing applied for team {currentTeam}.");
-                    currentlyDragging.movementRange = 0;
-                    HighlightPossibleMoves(currentlyDragging);
-                }
-            }
-        }*/
 
         if (Input.GetMouseButtonDown(0))
 {
@@ -244,6 +257,11 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
         // Zmiana tury po wciśnięciu Q
         if (Input.GetKeyDown(KeyCode.Q) && !isAIControlledTeam[currentTeam])
         {
+            if (currentlyDragging != null && currentlyDragging.isMoving)
+            {
+                Debug.Log("Nie możesz zakończyć swojej tury przed zakończeniem swojego ruchu");
+                return;
+            }
             ChangeTurn();
         }
 
@@ -252,6 +270,11 @@ if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
         {
             if (Input.GetKeyDown(KeyCode.Alpha1 + (i - 1)))
             {
+                if (currentlyDragging != null && currentlyDragging.isMoving)
+                {
+                    Debug.Log("Nie możesz zmienić pionka — aktualny jeszcze się porusza.");
+                    return;
+                }
                 SelectPieceById(i, currentTeam);
 
                 CurrentPiecePanel.CurrentPiecesSetPanel(currentlyDragging);
@@ -814,8 +837,11 @@ private bool IsOnHideoutTile(ChessPieces piece)
         cp.movementRange -= shortestCost;
 
         CurrentPiecePanel.CurrentPiecesSetPanel(currentlyDragging);
-        // (Opcjonalne) Podświetlenie możliwych ruchów po zakończeniu ruchu
-        HighlightPossibleMoves(cp);
+        //Podświetlenie możliwych ruchów po zakończeniu ruchu
+        if (!isAIControlledTeam[cp.team])
+        {
+            HighlightPossibleMoves(cp);
+        }
 
         Debug.Log($"Pionek przesunięty na ({targetX}, {targetY}). Koszt ruchu: {shortestCost}, pozostałe punkty ruchu: {cp.movementRange}");
 
@@ -823,70 +849,71 @@ private bool IsOnHideoutTile(ChessPieces piece)
     }
 
     private IEnumerator MovePieceAlongPath(ChessPieces cp, List<Node> path)
-{
-    float moveDuration = 0.5f;
-    Vector3 startPosition = cp.transform.position;
-
-    // Sprawdź, czy pionek zaczyna na kryjówce
-    bool wasOnHideout = IsOnHideoutTile(cp);
-
-    for (int i = 1; i < path.Count; i++)
     {
-        Vector2Int currentPos = new Vector2Int(path[i - 1].X, path[i - 1].Y);
-        Vector2Int nextPos = new Vector2Int(path[i].X, path[i].Y);
+        cp.isMoving = true;
+        float moveDuration = 0.5f;
+        Vector3 startPosition = cp.transform.position;
 
-        Vector3 targetPosition = GetTileCenter(nextPos.x, nextPos.y, cp);
-        float elapsedTime = 0f;
+        // Sprawdź, czy pionek zaczyna na kryjówce
+        bool wasOnHideout = IsOnHideoutTile(cp);
 
-        // Aktualizuj pozycję w tablicy pionków
-        cp.currentX = nextPos.x;
-        cp.currentY = nextPos.y;
-
-        UpdateFogOfWar(nextPos.x, nextPos.y);
-
-        // Sprawdź, czy pionek właśnie wchodzi lub wychodzi z kryjówki
-        bool isOnHideout = IsOnHideoutTile(cp);
-        if (wasOnHideout && !isOnHideout)
+        for (int i = 1; i < path.Count; i++)
         {
-            // Wychodzi z kryjówki - odsłoń pionek
-            UnHideCharacter(cp);
+            Vector2Int currentPos = new Vector2Int(path[i - 1].X, path[i - 1].Y);
+            Vector2Int nextPos = new Vector2Int(path[i].X, path[i].Y);
+
+            Vector3 targetPosition = GetTileCenter(nextPos.x, nextPos.y, cp);
+            float elapsedTime = 0f;
+
+            // Aktualizuj pozycję w tablicy pionków
+            cp.currentX = nextPos.x;
+            cp.currentY = nextPos.y;
+
+            UpdateFogOfWar(nextPos.x, nextPos.y);
+
+            // Sprawdź, czy pionek właśnie wchodzi lub wychodzi z kryjówki
+            bool isOnHideout = IsOnHideoutTile(cp);
+            if (wasOnHideout && !isOnHideout)
+            {
+                // Wychodzi z kryjówki - odsłoń pionek
+                UnHideCharacter(cp);
+            }
+            else if (!wasOnHideout && isOnHideout)
+            {
+                // Wchodzi do kryjówki - schowaj pionek
+                HideCharacter(cp);
+            }
+            wasOnHideout = isOnHideout;
+
+            UpdatePieceVisibility();
+
+            while (elapsedTime < moveDuration)
+            {
+                cp.transform.position = Vector3.Lerp(startPosition, targetPosition, elapsedTime / moveDuration);
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+
+            cp.transform.position = targetPosition;
+            startPosition = targetPosition;
         }
-        else if (!wasOnHideout && isOnHideout)
+
+        PositionSinglePiece(cp.currentX, cp.currentY);
+        currentPath.Clear();
+        ResetTileColors();
+
+        // Na koniec upewnij się, że pionek jest ukryty lub odkryty zgodnie z miejscem
+        if (IsOnHideoutTile(cp))
         {
-            // Wchodzi do kryjówki - schowaj pionek
             HideCharacter(cp);
         }
-        wasOnHideout = isOnHideout;
-
-        UpdatePieceVisibility();
-
-        while (elapsedTime < moveDuration)
+        else
         {
-            cp.transform.position = Vector3.Lerp(startPosition, targetPosition, elapsedTime / moveDuration);
-            elapsedTime += Time.deltaTime;
-            yield return null;
+            UnHideCharacter(cp);
         }
-
-        cp.transform.position = targetPosition;
-        startPosition = targetPosition;
+        cp.isMoving = false;
+        Debug.Log($"Pionek dotarł na {path[path.Count - 1]}. Aktualizacja pozycji na planszy.");
     }
-
-    PositionSinglePiece(cp.currentX, cp.currentY);
-    currentPath.Clear();
-    ResetTileColors();
-
-    // Na koniec upewnij się, że pionek jest ukryty lub odkryty zgodnie z miejscem
-    if (IsOnHideoutTile(cp))
-    {
-        HideCharacter(cp);
-    }
-    else
-    {
-        UnHideCharacter(cp);
-    }
-
-    Debug.Log($"Pionek dotarł na {path[path.Count - 1]}. Aktualizacja pozycji na planszy.");
-}
 
 
 
@@ -932,7 +959,13 @@ private bool IsOnHideoutTile(ChessPieces piece)
                 if (piece.team == teamId)
                 {
                     currentlyDragging = piece;
-                    Camera.main.GetComponent<CameraController>().SetTarget(piece.transform); // Ustawienie nowego celu kamery
+
+                    if (!isAIControlledTeam[teamId])
+                    {
+                        lastPlayerPiece = piece;
+                    }
+
+                    Camera.main.GetComponent<CameraController>().SetTarget(piece.transform);
                     Debug.Log($"Wybrano pionka z ID: {id} dla drużyny: {teamId}");
                     return;
                 }
@@ -1385,15 +1418,15 @@ private void SpawnMultiTeamPieces()
         // Odsłoń obszar wokół wszystkich pionków z aktywnej drużyny
         foreach (var piece in chessPieces)
         {
-            if (piece != null && piece.team == currentTeam)
+            if (piece != null && piece.team == 0 && !isAIControlledTeam[piece.team])
             {
                 RevealArea(piece.currentX, piece.currentY, piece.visionRange); // Zakres widoczności: 3 pola
             }
         }
-        if (currentlyDragging != null && currentlyDragging.team == currentTeam)
+        /*if (currentlyDragging != null && currentlyDragging.team == currentTeam && !isAIControlledTeam[currentlyDragging.team])
         {
             RevealArea(posX, posY, currentlyDragging.visionRange);
-        }
+        }*/
     }
 
 
@@ -1420,7 +1453,7 @@ private void SpawnMultiTeamPieces()
             if (piece != null)
             {
                 // Ukryj pionek, jeśli znajduje się w ukrytym obszarze mgły
-                if (fogTiles[piece.currentX, piece.currentY].activeSelf)
+                if (fogTiles[piece.currentX, piece.currentY].activeSelf && isAIControlledTeam[piece.team])
                 {
                     piece.gameObject.SetActive(false);
                 }
@@ -1453,11 +1486,15 @@ private void SpawnMultiTeamPieces()
         Debug.Log("Tura drużyny " + (currentTeam + 1));
 
         SelectPieceWithLowestId(currentTeam);
-        CurrentPiecePanel.CurrentPiecesSetPanel(currentlyDragging);
-        HighlightPossibleMoves(currentlyDragging);
-        UpdateFogOfWar(currentlyDragging.currentX, currentlyDragging.currentY);
-        UpdatePieceVisibility();
-
+        if (currentlyDragging != null && !isAIControlledTeam[currentlyDragging.team])
+        {
+            Camera.main.GetComponent<CameraController>().SetTarget(currentlyDragging.transform);
+        }
+            CurrentPiecePanel.CurrentPiecesSetPanel(currentlyDragging);
+            HighlightPossibleMoves(currentlyDragging);
+            UpdateFogOfWar(currentlyDragging.currentX, currentlyDragging.currentY);
+            UpdatePieceVisibility();
+        
         
         if (isAIControlledTeam[currentTeam])
         {
@@ -1519,7 +1556,39 @@ private void AddRandomHideouts(int count)
         }
         tries++;
     }
+
 }
+    public IEnumerator MovePieceAlongPathStep(ChessPieces cp, Vector2Int nextPos)
+    {
+        cp.isMoving = true;
+        float moveDuration = 0.2f; // czas ruchu na jedno pole (możesz zmienić)
+
+        Vector3 startPosition = cp.transform.position;
+        Vector3 targetPosition = GetTileCenter(nextPos.x, nextPos.y, cp);
+
+        // Przenieś pionek w tablicy na nową pozycję
+        chessPieces[cp.currentX, cp.currentY] = null;
+        chessPieces[nextPos.x, nextPos.y] = cp;
+
+        // Aktualizuj pozycję logiczną
+        cp.currentX = nextPos.x;
+        cp.currentY = nextPos.y;
+
+        // Tu możesz dorzucić: UpdateFogOfWar i UpdatePieceVisibility, jeśli chcesz
+        UpdateFogOfWar(cp.currentX, cp.currentY);
+        UpdatePieceVisibility();
+
+        float elapsedTime = 0f;
+        while (elapsedTime < moveDuration)
+        {
+            cp.transform.position = Vector3.Lerp(startPosition, targetPosition, elapsedTime / moveDuration);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        cp.transform.position = targetPosition;
+        cp.isMoving = false;
+    }
 
 }
 public class Node

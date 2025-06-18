@@ -19,6 +19,7 @@ public class ChessPieces : MonoBehaviour
     [Header("Active Abilities")]
     public List<Ability> abilities = new List<Ability>();
 
+    public bool isMoving = false;
 
     public int team;               // Drużyna (0 lub 1)
     public int currentX;           // Aktualna pozycja X
@@ -72,6 +73,10 @@ public class ChessPieces : MonoBehaviour
         {
             Debug.LogWarning($"[UseAbility] Invalid ability index {index} on {this.type}");
         }
+    }
+    public bool IsVisibleToPlayer()
+    {
+        return !ChessBoard.Instance.fogTiles[currentX, currentY].activeSelf;
     }
 
 }
