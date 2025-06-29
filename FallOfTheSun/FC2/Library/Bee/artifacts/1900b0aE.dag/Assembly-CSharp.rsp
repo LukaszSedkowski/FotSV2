@@ -436,6 +436,7 @@
 "Assets/Scripts/Camera.cs"
 "Assets/Scripts/ChessBoard.cs"
 "Assets/Scripts/ChessPieces.cs"
+"Assets/Scripts/DialogS/DialogueUI.cs"
 "Assets/Scripts/Dog.cs"
 "Assets/Scripts/GameMenagre.cs"
 "Assets/Scripts/GameWithAI/AIController.cs"
