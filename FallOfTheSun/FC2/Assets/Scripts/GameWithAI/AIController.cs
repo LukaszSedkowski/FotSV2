@@ -5,13 +5,27 @@ using UnityEngine;
 public class AIController : MonoBehaviour
 {
     public static AIController Instance;
-
+    private ChessBoard board;
+    public TileManager tileManager;
+    public PieceManager pieceManager;
+    public TurnManager turnManager;
     private void Awake()
     {
         if (Instance == null)
             Instance = this;
         else
             Destroy(gameObject);
+        if (tileManager == null)
+            tileManager = FindAnyObjectByType<TileManager>();
+        if (pieceManager == null)
+            pieceManager = FindAnyObjectByType<PieceManager>();
+        if (turnManager == null)
+            turnManager = FindAnyObjectByType<TurnManager>();
+        if (board == null)
+            board = FindAnyObjectByType<ChessBoard>();
+
+        if (tileManager == null) Debug.LogError("tileManager is null in AIController!");
+        if (board == null) Debug.LogError("chessBoard is null in AIController!");
     }
 
     public void PlayTurn(int teamId)
@@ -29,7 +43,7 @@ public class AIController : MonoBehaviour
         {
             if (piece == null || piece.health <= 0) continue;
 
-            ChessBoard.Instance.currentlyDragging = piece;
+            board.currentlyDragging = piece;
 
             ChessPieces target = FindBestTarget(piece);
             if (target == null) continue;
@@ -71,13 +85,14 @@ public class AIController : MonoBehaviour
 
             if (dist <= piece.attackRange && piece.movementRange >= piece.attackCost)
             {
-                ChessBoard.Instance.AttackEnemyPiece(target.currentX, target.currentY);
+                AttackManager.Instance.AttackEnemyPiece(piece, target, tileManager.tileHeights, tileManager.obstacles, pieceManager.chessPieces);
+                //ChessBoard.Instance.AttackEnemyPiece(target.currentX, target.currentY);
                 yield return new WaitForSeconds(0.4f);
             }
         }
 
         yield return new WaitForSeconds(1f);
-        ChessBoard.Instance.ChangeTurn();
+        turnManager.ChangeTurn();
     }
 
     // NOWA METODA (dodaj j¹ do AIController)
@@ -117,7 +132,7 @@ public class AIController : MonoBehaviour
     {
         List<ChessPieces> result = new List<ChessPieces>();
 
-        ChessPieces[,] board = ChessBoard.Instance.GetComponent<ChessBoard>().GetComponent<ChessBoard>().chessPieces;
+        ChessPieces[,] board = pieceManager.chessPieces;
 
         for (int x = 0; x < board.GetLength(0); x++)
         {
@@ -137,7 +152,7 @@ public class AIController : MonoBehaviour
         ChessPieces nearest = null;
         float minDistance = float.MaxValue;
 
-        ChessPieces[,] board = ChessBoard.Instance.GetComponent<ChessBoard>().chessPieces;
+        ChessPieces[,] board = ChessBoard.Instance.GetComponent<ChessBoard>().pieceManager.chessPieces;
 
         for (int x = 0; x < board.GetLength(0); x++)
         {
@@ -163,7 +178,7 @@ public class AIController : MonoBehaviour
     }
     private ChessPieces FindBestTarget(ChessPieces attacker)
     {
-        ChessPieces[,] board = ChessBoard.Instance.GetComponent<ChessBoard>().chessPieces;
+        ChessPieces[,] board = pieceManager.chessPieces;
         ChessPieces bestTarget = null;
         float bestScore = float.MaxValue; // im mniejsze HP, tym lepszy cel
 
@@ -211,13 +226,13 @@ public class AIController : MonoBehaviour
                 int tx = target.currentX + dx;
                 int ty = target.currentY + dy;
 
-                if (tx < 0 || ty < 0 || tx >= ChessBoard.Tile_Count_X || ty >= ChessBoard.Tile_Count_Y)
+                if (tx < 0 || ty < 0 || tx >= TileManager.Tile_Count_X || ty >= TileManager.Tile_Count_Y)
                     continue;
 
                 if (Mathf.RoundToInt(Vector2Int.Distance(new Vector2Int(tx, ty), new Vector2Int(target.currentX, target.currentY))) > range)
                     continue;
 
-                if (ChessBoard.Instance.GetPieceAt(tx, ty) != null)
+                if (pieceManager.GetPieceAt(tx, ty) != null)
                     continue;
 
                 if (ChessBoard.Instance.IsObstacle(tx, ty))

@@ -16,6 +16,8 @@ public enum ChessPieceType
 
 public class ChessPieces : MonoBehaviour
 {
+
+    public FogOfWarManager fogOfWarManager;
     [Header("Active Abilities")]
     public List<Ability> abilities = new List<Ability>();
 
@@ -76,7 +78,7 @@ public class ChessPieces : MonoBehaviour
     }
     public bool IsVisibleToPlayer()
     {
-        return !ChessBoard.Instance.fogTiles[currentX, currentY].activeSelf;
+        return !fogOfWarManager.fogTiles[currentX, currentY].activeSelf;
     }
 
 }

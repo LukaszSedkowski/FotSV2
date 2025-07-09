@@ -172,7 +172,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce0385cd04c99e54ba4a785d98db65cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fogOfWarManager: {fileID: 0}
   abilities: []
+  isMoving: 0
   team: 0
   currentX: 0
   currentY: 0
@@ -909,7 +911,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6843a8cfb07bcef4584a832528fc3f56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fogOfWarManager: {fileID: 0}
   abilities: []
+  isMoving: 0
   team: 0
   currentX: 0
   currentY: 0
@@ -951,6 +955,11 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!1 &317550689 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 389110709415280420, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
+  m_PrefabInstance: {fileID: 176922942642157590}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -1972,7 +1981,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4202840723478e43b4994543f740fab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fogOfWarManager: {fileID: 0}
   abilities: []
+  isMoving: 0
   team: 0
   currentX: 0
   currentY: 0
@@ -1987,6 +1998,8 @@ MonoBehaviour:
   groundOffset: 0.5
   visionRange: 3
   hasPassiveAbility: 0
+  healAmount: 20
+  extraDamage: 30
 --- !u!54 &607676249
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2152,7 +2165,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14a77ab92389a3c468ade5c325694091, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fogOfWarManager: {fileID: 0}
   abilities: []
+  isMoving: 0
   team: 0
   currentX: 0
   currentY: 0
@@ -2716,10 +2731,6 @@ MonoBehaviour:
   - {fileID: 1123335809}
   - {fileID: 1878465444}
   - {fileID: 630323303}
-  icons:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
 --- !u!1001 &1064095309
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4945,7 +4956,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a959553606bdb024383c6ee2feb4b2c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fogOfWarManager: {fileID: 0}
   abilities: []
+  isMoving: 0
   team: 0
   currentX: 0
   currentY: 0
@@ -5339,6 +5352,12 @@ GameObject:
   m_Component:
   - component: {fileID: 1685910853}
   - component: {fileID: 1685910852}
+  - component: {fileID: 1685910854}
+  - component: {fileID: 1685910856}
+  - component: {fileID: 1685910857}
+  - component: {fileID: 1685910855}
+  - component: {fileID: 1685910858}
+  - component: {fileID: 1685910859}
   m_Layer: 0
   m_Name: ChessBoard
   m_TagString: Untagged
@@ -5358,42 +5377,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 18a2aa4802f0c6d4ea0c476ba554d72c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileMaterials:
-  - {fileID: 2100000, guid: ddf34ec4f2d402f4c8769883e4bb6080, type: 2}
-  - {fileID: 2100000, guid: e86ad39ff3662f14a8a2324b30657da2, type: 2}
-  - {fileID: 2100000, guid: 601e2066048f72f4db847222b727cb9e, type: 2}
-  - {fileID: 2100000, guid: fe12aecce76cd4744ae183ae308e9cad, type: 2}
-  hoverMaterial: {fileID: 2100000, guid: 9f274923f113d1e48b0524f2a03f5fda, type: 2}
-  pillarMaterial: {fileID: 2100000, guid: ddf34ec4f2d402f4c8769883e4bb6080, type: 2}
-  tilePrefabs:
-  - {fileID: 389110709415280420, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
-  - {fileID: 1428171530}
-  gameEdgePrefabs:
-  - {fileID: 389110709415280420, guid: 5c2c1cf18cdd2e2449c7286230deeefd, type: 3}
-  fencePrefabs:
-  - {fileID: 1677438591}
-  prefabs:
-  - {fileID: 607676247}
-  - {fileID: 1690661790}
-  - {fileID: 97977248}
-  - {fileID: 957091409}
-  - {fileID: 196541849}
-  - {fileID: 773179776}
-  - {fileID: 91785319}
-  - {fileID: 1548296243}
-  teamMaterials:
-  - {fileID: 2100000, guid: 9f274923f113d1e48b0524f2a03f5fda, type: 2}
-  - {fileID: 2100000, guid: 8f1c2ba588bf68c47861fd3c520d8cb4, type: 2}
-  - {fileID: 2100000, guid: 0a363dc722ede664e93dfbb4ac650f1a, type: 2}
-  - {fileID: 2100000, guid: c594e7f66048de2478abd79a32b40068, type: 2}
+  tileManager: {fileID: 1685910855}
+  pieceManager: {fileID: 1685910857}
+  attackManager: {fileID: 1685910854}
+  fogOfWarManager: {fileID: 1685910856}
+  highlightManager: {fileID: 1685910858}
+  turnManager: {fileID: 1685910859}
   obstaclePrefab: {fileID: 2018999369}
-  obstaclePrefabRock: {fileID: 1677438591}
-  hideoutPrefabs:
-  - {fileID: 1560122337}
   CurrentPiecePanel: {fileID: 1936734076}
   skillsPanel: {fileID: 1031889122}
-  prefabFog: {fileID: 409282422}
   currentlyDragging: {fileID: 0}
+  lastPlayerPiece: {fileID: 0}
 --- !u!4 &1685910853
 Transform:
   m_ObjectHideFlags: 0
@@ -5409,6 +5403,116 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1685910854
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1685910851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4c7546b00182a64c9a082f557120272, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1685910855
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1685910851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f1875f8783fe5048ac1cc8d43c3be9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tileMaterials:
+  - {fileID: 2100000, guid: ddf34ec4f2d402f4c8769883e4bb6080, type: 2}
+  - {fileID: 2100000, guid: e86ad39ff3662f14a8a2324b30657da2, type: 2}
+  - {fileID: 2100000, guid: 601e2066048f72f4db847222b727cb9e, type: 2}
+  - {fileID: 2100000, guid: fe12aecce76cd4744ae183ae308e9cad, type: 2}
+  hoverMaterial: {fileID: 2100000, guid: 9f274923f113d1e48b0524f2a03f5fda, type: 2}
+  pillarMaterial: {fileID: 2100000, guid: ddf34ec4f2d402f4c8769883e4bb6080, type: 2}
+  tilePrefabs:
+  - {fileID: 317550689}
+  - {fileID: 1428171530}
+  gameEdgePrefabs:
+  - {fileID: 317550689}
+  fencePrefabs:
+  - {fileID: 1677438591}
+  obstaclePrefabRock: {fileID: 1677438591}
+  hideoutPrefabs:
+  - {fileID: 1560122337}
+  tileSize: 1
+--- !u!114 &1685910856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1685910851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ee703621704b5645823ebd8278fdb05, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  prefabFog: {fileID: 409282422}
+--- !u!114 &1685910857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1685910851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d179b8f4b8e47e4d96177173b53e38d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tileManager: {fileID: 1685910855}
+  fogOfWarManager: {fileID: 1685910856}
+  prefabs:
+  - {fileID: 607676247}
+  - {fileID: 1690661790}
+  - {fileID: 97977248}
+  - {fileID: 957091409}
+  - {fileID: 196541849}
+  - {fileID: 773179776}
+  - {fileID: 91785319}
+  - {fileID: 1548296243}
+  teamMaterials:
+  - {fileID: 2100000, guid: 9f274923f113d1e48b0524f2a03f5fda, type: 2}
+  - {fileID: 2100000, guid: 8f1c2ba588bf68c47861fd3c520d8cb4, type: 2}
+  - {fileID: 2100000, guid: 0a363dc722ede664e93dfbb4ac650f1a, type: 2}
+  - {fileID: 2100000, guid: c594e7f66048de2478abd79a32b40068, type: 2}
+--- !u!114 &1685910858
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1685910851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a53e9b7ffea0dae4abffc35dbd053e6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  highlightedTilesList: []
+--- !u!114 &1685910859
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1685910851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b8b2c0ecada1a849b140b4fd2d86b57, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentTeam: 0
+  isAIControlledTeam: 
 --- !u!1 &1690661790 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6436691035210430360, guid: 1fffb7fcaee76404a8b10b9cce84e78e, type: 3}
@@ -5426,7 +5530,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c41b455e44dae9418005b6dba01ea6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fogOfWarManager: {fileID: 0}
   abilities: []
+  isMoving: 0
   team: 0
   currentX: 0
   currentY: 0
