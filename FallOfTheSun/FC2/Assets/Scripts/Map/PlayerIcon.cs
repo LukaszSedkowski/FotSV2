@@ -34,6 +34,10 @@ public class PlayerMovement : MonoBehaviour
     public string Map = "SampleScene"; // podaj nazwę sceny z Build
 
     private List<ChessPieceType> selectedCharacters;
+    public Text enemyInfoText; // przeciągnij UI Text z Canvas Info do tego pola
+public Button infoButton;
+
+public DialogueManager dialogueManager;
 
 void Start()
 {
@@ -61,15 +65,22 @@ foreach (var character in selectedCharacters)
 
     sceneChangeButton.gameObject.SetActive(false);
     sceneChangeButton.onClick.AddListener(ChangeScene);
+    infoButton.onClick.AddListener(ShowEnemiesAtSelectedWaypoint);
 
     // Przesunięcie aktywacji waypointów o jeden dzień
     if (dayCount > 0)
     {
         ActivateRandomWaypoints(2, 3); // Wybierz losowo 2 waypointy na 3 dni
     }
+StartCoroutine(DelayedDialogueStart());
+
 }
 
-    
+  private IEnumerator DelayedDialogueStart()
+{
+    yield return null; // odczekaj 1 klatkę (frame)
+    dialogueManager.StartDialogueByName("a");
+}  
 
     void Update()
     {
@@ -81,7 +92,19 @@ foreach (var character in selectedCharacters)
         {
             speed = Mathf.Clamp(speed - 1f, minSpeed, maxSpeed);
         }
-
+    if (Input.GetKeyDown(KeyCode.Q))
+    {
+        if (dialogueManager != null)
+        {
+            dialogueManager.NextLine();
+        }
+    }
+            if (Input.GetMouseButtonDown(1)) 
+        {
+        if (dialogueManager != null)
+        {
+            dialogueManager.NextLine();
+        }    }
 
 
     if (Input.GetMouseButtonDown(0)) 
@@ -347,4 +370,40 @@ void ActivateRandomWaypoints(int count, int days)
     {
         return Vector3.Distance(a.transform.position, b.transform.position);
     }
+
+
+
+public void ShowEnemiesAtSelectedWaypoint()
+{
+    if (selectedWaypoint != null)
+    {
+        if (selectedWaypoint.enemyCharacters.Count > 0)
+        {
+            // Złącz wszystkie nazwy wrogów w jeden string oddzielony przecinkami
+            string enemiesLine = string.Join(", ", selectedWaypoint.enemyCharacters.Select(e => e.ToString()));
+
+            string info = "Wrogowie: " + enemiesLine;
+
+            Debug.Log("Wrogowie na punkcie " + selectedWaypoint.name + ": " + enemiesLine);
+
+            enemyInfoText.text = info;  // Ustawiamy tekst UI
+        }
+        else
+        {
+            string noEnemiesMsg = "Brak wrogów na punkcie: " + selectedWaypoint.name;
+            enemyInfoText.text = noEnemiesMsg;
+            Debug.Log(noEnemiesMsg);
+        }
+    }
+    else
+    {
+        string noSelectionMsg = "Nie wybrano żadnego punktu.";
+        enemyInfoText.text = noSelectionMsg;
+        Debug.Log(noSelectionMsg);
+    }
+}
+
+
+
+
 }
