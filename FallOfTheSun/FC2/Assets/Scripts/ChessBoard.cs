@@ -200,7 +200,7 @@ public class ChessBoard : MonoBehaviour
                     bool validMove = MoveTo(currentlyDragging, hitPosition.x, hitPosition.y);
                     if (!validMove)
                     {
-                        currentlyDragging.transform.position = tileManager.GetTileCenter(previousPosition.x, previousPosition.y/*, currentlyDragging*/);
+                        currentlyDragging.transform.position = tileManager.GetTileCenter(previousPosition.x, previousPosition.y, currentlyDragging);
 
                     }
                     fogOfWarManager.UpdateFogOfWar(currentlyDragging.currentX, currentlyDragging.currentY, pieceManager.chessPieces);
@@ -484,7 +484,7 @@ private bool IsOnHideoutTile(ChessPieces piece)
             Vector2Int currentPos = new Vector2Int(path[i - 1].X, path[i - 1].Y);
             Vector2Int nextPos = new Vector2Int(path[i].X, path[i].Y);
 
-            Vector3 targetPosition = tileManager.GetTileCenter(nextPos.x, nextPos.y/*, cp*/);
+            Vector3 targetPosition = tileManager.GetTileCenter(nextPos.x, nextPos.y, cp);
             float elapsedTime = 0f;
 
             // Aktualizuj pozycję w tablicy pionków
@@ -545,7 +545,7 @@ private bool IsOnHideoutTile(ChessPieces piece)
 
         // Pobierz aktualną pozycję pionka na planszy
         Vector3 startPosition = cp.transform.position;
-        Vector3 targetPosition = tileManager.GetTileCenter(targetPos.x, targetPos.y/*, cp*/); // Funkcja, która zwraca środek kafelka
+        Vector3 targetPosition = tileManager.GetTileCenter(targetPos.x, targetPos.y, cp); // Funkcja, która zwraca środek kafelka
 
         // Animuj ruch pionka
         while (elapsedTime < moveDuration)
@@ -618,7 +618,7 @@ private bool IsOnHideoutTile(ChessPieces piece)
         float moveDuration = 0.2f; // czas ruchu na jedno pole (możesz zmienić)
 
         Vector3 startPosition = cp.transform.position;
-        Vector3 targetPosition = tileManager.GetTileCenter(nextPos.x, nextPos.y/*, cp*/);
+        Vector3 targetPosition = tileManager.GetTileCenter(nextPos.x, nextPos.y, cp);
 
         // Przenieś pionek w tablicy na nową pozycję
         pieceManager.chessPieces[cp.currentX, cp.currentY] = null;

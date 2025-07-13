@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class TileManager : MonoBehaviour
 {
+    private ChessBoard chessBoard;
     private static TileManager _instance;
     public static TileManager Instance
     {
@@ -276,7 +277,7 @@ public class TileManager : MonoBehaviour
                 float tileHeight = tileHeights[x, y];
 
                 // Uzyskujemy pozycjê kafelka i ustawiamy wysokoœæ przeszkody
-                Vector3 position = GetTileCenter(x, y);
+                Vector3 position = GetTileCenter2(x, y);
                 position.y = tileHeight + 0.8f; // Ustawienie wysokoœci przeszkody zgodnie z wysokoœci¹ kafelka
 
                 // Debugowanie pozycji
@@ -367,7 +368,7 @@ public class TileManager : MonoBehaviour
 
         return (bx < aRight && (bx + bw) > aLeft && by < aBottom && (by + bh) > aTop);
     }
-    /*public Vector3 GetTileCenter(int x, int y, ChessPieces movingPiece)
+    public Vector3 GetTileCenter(int x, int y, ChessPieces movingPiece)
     {
         float tileHeight = tiles[x, y].transform.position.y;
         if (movingPiece == null)
@@ -378,8 +379,8 @@ public class TileManager : MonoBehaviour
         {
             return new Vector3(x * tileSize, tileHeight + movingPiece.groundOffset, y * tileSize);
         }
-    }*/
-    public Vector3 GetTileCenter(int x, int y)
+    }
+    public Vector3 GetTileCenter2(int x, int y)
     {
         float tileHeight = tiles[x, y].transform.position.y;
         return new Vector3(x * tileSize, tileHeight, y * tileSize);
