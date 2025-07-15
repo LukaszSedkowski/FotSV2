@@ -72,6 +72,8 @@ public class ChessBoard : MonoBehaviour
 
         pieceManager.SpawnAllPieces();
         pieceManager.PositionAllPieces();
+        Camera.main.GetComponent<CameraController>().FitCameraToBoard(TileManager.Tile_Count_X, TileManager.Tile_Count_Y, tileManager.tileSize);
+
 
         fogOfWarManager.Init(tileManager);
         highlightManager.Init(tileManager,pieceManager);

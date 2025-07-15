@@ -72,4 +72,27 @@ public class CameraController : MonoBehaviour
     {
         target = newTarget; // Ustawienie nowego obiektu docelowego
     }
+    public void FitCameraToBoard(int boardWidth, int boardHeight, float tileSize)
+    {
+        float screenAspect = (float)Screen.width / (float)Screen.height;
+        float boardAspect = (float)boardWidth / (float)boardHeight;
+
+        float distance;
+
+        if (screenAspect >= boardAspect)
+        {
+            // Ekran szerszy niż plansza
+            distance = boardHeight * tileSize / (2f * Mathf.Tan(Camera.main.fieldOfView * 0.5f * Mathf.Deg2Rad));
+        }
+        else
+        {
+            // Ekran węższy niż plansza
+            float horizontalFOV = 2f * Mathf.Atan(Mathf.Tan(Camera.main.fieldOfView * Mathf.Deg2Rad * 0.5f) * screenAspect);
+            distance = boardWidth * tileSize / (2f * Mathf.Tan(horizontalFOV * 0.5f));
+        }
+
+        Vector3 center = new Vector3((boardWidth - 1) * tileSize / 2f, 0, (boardHeight - 1) * tileSize / 2f);
+        transform.position = center + Vector3.up * distance;
+        transform.LookAt(center);
+    }
 }
