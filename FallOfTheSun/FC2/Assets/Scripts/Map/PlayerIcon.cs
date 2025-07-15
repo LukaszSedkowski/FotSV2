@@ -184,7 +184,7 @@ void ChangeScene()
     }
 
     GameData.Instance.playerCharacters = selectedCharacters;
-    GameData.Instance.enemyCharacters = selectedWaypoint.enemyCharacters;
+    GameData.Instance.enemyCharacters = currentWaypoint.enemyCharacters;
 
     Debug.Log("Zmiana sceny na: " + Map);
     SceneManager.LoadScene("SampleScene");
