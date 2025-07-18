@@ -60,8 +60,8 @@ public class AIController : MonoBehaviour
 
                 if (targetPos.HasValue)
                 {
-                    List<Node> path = ChessBoard.Instance.AStarPathFind(
-                        ChessBoard.Instance.GetTiles(),
+                    List<Node> path = board.AStarPathFind(
+                        board.GetTiles(),
                         (piece.currentX, piece.currentY),
                         (targetPos.Value.x, targetPos.Value.y)
                     );
@@ -72,7 +72,7 @@ public class AIController : MonoBehaviour
                         bool wasVisible = piece.IsVisibleToPlayer();
 
                         // Zacznij coroutine ruchu
-                        yield return ChessBoard.Instance.StartCoroutine(MovePieceAndHandleCamera(piece, path, wasVisible));
+                        yield return board.StartCoroutine(MovePieceAndHandleCamera(piece, path, wasVisible));
                     }
                 }
             }
@@ -86,7 +86,7 @@ public class AIController : MonoBehaviour
             if (dist <= piece.attackRange && piece.movementRange >= piece.attackCost)
             {
                 AttackManager.Instance.AttackEnemyPiece(piece, target, tileManager.tileHeights, tileManager.obstacles, pieceManager.chessPieces);
-                //ChessBoard.Instance.AttackEnemyPiece(target.currentX, target.currentY);
+                //board.AttackEnemyPiece(target.currentX, target.currentY);
                 yield return new WaitForSeconds(0.4f);
             }
         }
@@ -107,8 +107,8 @@ public class AIController : MonoBehaviour
             // Zrób faktyczny ruch pionka (ten fragment skopiuj z ChessBoard.MovePieceAlongPath)
 
             // Tutaj fragment animacji ruchu pionka – najlepiej wywo³aæ coroutine z ChessBoard
-            yield return ChessBoard.Instance.StartCoroutine(
-                ChessBoard.Instance.MovePieceAlongPathStep(piece, nextPos) // Musisz dodaæ tak¹ metodê, która wykonuje jeden krok
+            yield return board.StartCoroutine(
+                board.MovePieceAlongPathStep(piece, nextPos) // Musisz dodaæ tak¹ metodê, która wykonuje jeden krok
             );
 
             // W TRAKCIE ruchu: sprawdŸ czy pionek wszed³ w pole widzenia gracza
@@ -120,10 +120,10 @@ public class AIController : MonoBehaviour
         }
 
         // Po zakoñczonym ruchu wróæ kamer¹ na ostatni pionek gracza
-        if (cameraSwitched && ChessBoard.Instance.lastPlayerPiece != null)
+        if (cameraSwitched && board.lastPlayerPiece != null)
         {
             yield return new WaitForSeconds(0.5f);
-            cameraController.SetTarget(ChessBoard.Instance.lastPlayerPiece.transform);
+            cameraController.SetTarget(board.lastPlayerPiece.transform);
         }
     }
 
@@ -152,7 +152,7 @@ public class AIController : MonoBehaviour
         ChessPieces nearest = null;
         float minDistance = float.MaxValue;
 
-        ChessPieces[,] board = ChessBoard.Instance.GetComponent<ChessBoard>().pieceManager.chessPieces;
+        ChessPieces[,] board = GetComponent<ChessBoard>().pieceManager.chessPieces;
 
         for (int x = 0; x < board.GetLength(0); x++)
         {
@@ -235,7 +235,7 @@ public class AIController : MonoBehaviour
                 if (pieceManager.GetPieceAt(tx, ty) != null)
                     continue;
 
-                if (ChessBoard.Instance.IsObstacle(tx, ty))
+                if (board.IsObstacle(tx, ty))
                     continue;
 
                 candidates.Add(new Vector2Int(tx, ty));
@@ -248,7 +248,7 @@ public class AIController : MonoBehaviour
 
         foreach (var pos in candidates)
         {
-            var path = ChessBoard.Instance.AStarPathFind(ChessBoard.Instance.GetTiles(),
+            var path = board.AStarPathFind(board.GetTiles(),
                                                          (attacker.currentX, attacker.currentY),
                                                          (pos.x, pos.y));
             if (path.Count > 0 && path.Count < shortestPath)

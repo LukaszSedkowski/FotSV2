@@ -19,4 +19,46 @@ public class Knight : ChessPieces
         health += 10;
         Debug.Log($"Rycerz zwiêksza swoje max zdrowie i zdrowie. Aktualne max zdrowie {maxHealth} i zdrowie {health}");
     }
+    void Awake()
+    {
+        // Usuñ stare umiejêtnoœci
+        abilities.Clear();
+
+        // 1) Leczenie
+        abilities.Add(new Ability(
+            "Heal",
+            null,
+            user =>
+            {
+                var hunter = (Hunter)user;
+                hunter.health = Mathf.Min(hunter.health + hunter.healAmount, hunter.maxHealth);
+                lightDarkness.ChangeLightDarkLevel(5);
+                Debug.Log($"{hunter.type} healed for {hunter.healAmount} HP.");
+            }
+        ));
+
+        // 2) Regeneracja ruchu
+        abilities.Add(new Ability(
+            "Regenerate Movement",
+            null,
+            user =>
+            {
+                user.movementRange = user.maxMovementRange;
+                lightDarkness.ChangeLightDarkLevel(5);
+                Debug.Log($"{user.type} movement range reset to {user.maxMovementRange}.");
+            }
+        ));
+
+        // 3) Mocniejszy cios
+        abilities.Add(new Ability(
+            "Strong Strike",
+            null,
+            user => {
+                var hunter = (Hunter)user;
+                hunter.strongStrikeActive = true;
+                lightDarkness.ChangeLightDarkLevel(5);
+                Debug.Log($"{hunter.type} empowered next attack by {hunter.extraDamage} damage.");
+            }
+        ));
+    }
 }
