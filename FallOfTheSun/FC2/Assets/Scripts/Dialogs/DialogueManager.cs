@@ -140,7 +140,7 @@ public void StartDialogueByName(string dialogueName)
             leftPortrait.color = new Color(1, 1, 1, 0);
         }
 
-        dialogueText.text = $"{speaker.name}: {line.text}";
+        dialogueText.text = $"{speaker.name}:\n\n{line.text}";
     }
 
     private Character GetCharacterByType(CharacterType type)

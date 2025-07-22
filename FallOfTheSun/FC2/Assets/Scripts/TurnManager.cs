@@ -11,9 +11,9 @@ public class TurnManager : MonoBehaviour
     private FogOfWarManager fogOfWarManager;
     private ChessBoard chessBoard;
 
-    public int currentTeam = 0; // Aktualna dru¿yna (zaczynamy od dru¿yny 0)
+    public int currentTeam = 0; // Aktualna druï¿½yna (zaczynamy od druï¿½yny 0)
     public bool[] isAIControlledTeam;
-    private int numberOfTeams; // Przyk³adowo, ustawiamy na 4 dru¿yny
+    private int numberOfTeams; // Przykï¿½adowo, ustawiamy na 4 druï¿½yny
 
     void Start()
     {
@@ -41,13 +41,13 @@ public class TurnManager : MonoBehaviour
 
             if (!DoesTeamHavePieces(currentTeam))
             {
-                Debug.Log("Dru¿yna " + (currentTeam + 1) + " nie ma pionków. Pomijam.");
+                Debug.Log("Druï¿½yna " + (currentTeam + 1) + " nie ma pionkï¿½w. Pomijam.");
             }
         } while (!DoesTeamHavePieces(currentTeam) && attempts > 0);
 
         ResetMovementRangeForTeam(currentTeam);
 
-        Debug.Log("Tura dru¿yny " + (currentTeam + 1));
+        Debug.Log("Tura druï¿½yny " + (currentTeam + 1));
 
         SelectPieceWithLowestId(currentTeam);
         if (chessBoard.currentlyDragging != null && !isAIControlledTeam[chessBoard.currentlyDragging.team])
@@ -74,7 +74,7 @@ public class TurnManager : MonoBehaviour
     }
     private bool DoesTeamHavePieces(int teamId)
     {
-        // Sprawdzamy, czy jakikolwiek pionek nale¿y do danej dru¿yny i jest ¿ywy
+        // Sprawdzamy, czy jakikolwiek pionek naleï¿½y do danej druï¿½yny i jest ï¿½ywy
         foreach (var piece in pieceManager.chessPieces)
         {
             if (piece != null && piece.team == teamId)
@@ -86,10 +86,10 @@ public class TurnManager : MonoBehaviour
     }
     public void CheckGameOver()
     {
-        // Sprawdzamy, czy na planszy s¹ jeszcze pionki przeciwników
+        // Sprawdzamy, czy na planszy sï¿½ jeszcze pionki przeciwnikï¿½w
         for (int team = 0; team < numberOfTeams; team++)
         {
-            if (team == currentTeam) continue; // Pomijamy aktualn¹ dru¿ynê
+            if (team == currentTeam) continue; // Pomijamy aktualnï¿½ druï¿½ynï¿½
 
             bool enemyFound = false;
             foreach (var piece in pieceManager.chessPieces)
@@ -103,26 +103,53 @@ public class TurnManager : MonoBehaviour
 
             if (enemyFound)
             {
-                return; // Wci¹¿ s¹ przeciwnicy, nie koñczymy gry
+                return; // Wciï¿½ï¿½ sï¿½ przeciwnicy, nie koï¿½czymy gry
             }
         }
 
-        // Jeœli nie znaleziono przeciwników, gra siê koñczy
+        // Jeï¿½li nie znaleziono przeciwnikï¿½w, gra siï¿½ koï¿½czy
         GameOver();
     }
-    private void GameOver()
-    {
-        Debug.Log("Gra zakoñczona! Dru¿yna " + currentTeam + " wygrywa!");
+private void GameOver()
+{
+    Debug.Log("Gra zakoÅ„czona! DruÅ¼yna " + currentTeam + " wygrywa!");
 
-        StartCoroutine(LoadMainMenu());
-    }
-
-    private IEnumerator LoadMainMenu()
+    if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
     {
-        Debug.Log("£adowanie sceny MainMenu...");
-        SceneManager.LoadScene("MainMenu");
-        yield return new WaitForSeconds(1);
+        bool playerHasPieces = false;
+
+        foreach (var piece in pieceManager.chessPieces)
+        {
+            if (piece != null && piece.team == 0) // ZakÅ‚adamy Å¼e gracz to team 0
+            {
+                playerHasPieces = true;
+                break;
+            }
+        }
+
+        if (playerHasPieces)
+        {
+            StartCoroutine(LoadScene("Map")); // Gracz wygraÅ‚ â†’ przejÅ›cie do Mapy
+        }
+        else
+        {
+            StartCoroutine(LoadScene("MainMenu")); // Gracz przegraÅ‚ â†’ MainMenu
+        }
     }
+    else if (GameData.Instance.CurrentGameMode == GameMode.MultiTeam)
+    {
+        Debug.Log("PowrÃ³t do Menu");
+        StartCoroutine(LoadScene("MainMenu"));
+    }
+}
+
+private IEnumerator LoadScene(string sceneName)
+{
+    Debug.Log("Åadowanie sceny: " + sceneName);
+    yield return new WaitForSeconds(1); // Opcjonalny delay
+    SceneManager.LoadScene(sceneName);
+}
+
 
 
     private void ResetMovementRangeForTeam(int team)
@@ -134,7 +161,7 @@ public class TurnManager : MonoBehaviour
                 ChessPieces cp = pieceManager.chessPieces[x, y];
                 if (cp != null && cp.team == team)
                 {
-                    cp.movementRange = cp.maxMovementRange; // Resetowanie punktów ruchu na maksymalne
+                    cp.movementRange = cp.maxMovementRange; // Resetowanie punktï¿½w ruchu na maksymalne
                 }
             }
         }
@@ -162,7 +189,7 @@ public class TurnManager : MonoBehaviour
         }
         else
         {
-            Debug.Log("Brak pionków dla dru¿yny " + team);
+            Debug.Log("Brak pionkï¿½w dla druï¿½yny " + team);
         }
     }
 }
