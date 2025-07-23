@@ -2,7 +2,12 @@ using UnityEngine;
 
 public class AttackManager : MonoBehaviour
 {
+    private LightDarknessManager lightDarkness;
     private static AttackManager _instance;
+    private void Start()
+    {
+        lightDarkness = FindAnyObjectByType<LightDarknessManager>();
+    }
     public static AttackManager Instance
     {
         get
@@ -64,7 +69,7 @@ public class AttackManager : MonoBehaviour
                 bool isObstacleBetween = IsObstacleBetween(attacker, target, obstacles);
 
                 // Podstawowe obra¿enia
-                int damage = attacker.attack;
+                float damage = attacker.attack * attacker.GetBonus(attacker.elementType);
 
                 // *** TU DODAJEMY STRONG STRIKE BONUS ***
                 if (attacker is Hunter hunter && hunter.ConsumeStrongStrike())

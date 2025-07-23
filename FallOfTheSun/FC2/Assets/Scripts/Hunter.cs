@@ -2,9 +2,6 @@ using UnityEngine;
 
 public class Hunter : ChessPieces
 {
-    public bool strongStrikeActive { get; set; }
-    public int healAmount = 20;
-    public int extraDamage = 30;
     protected override void SetStats()
     {
         movementRange = 10;
@@ -14,7 +11,8 @@ public class Hunter : ChessPieces
         attack = 26;
         attackRange = 10;
         attackCost = 5;
-        visionRange = (attackRange+maxMovementRange)/2;
+        visionRange = (attackRange + maxMovementRange) / 2;
+        elementType = ElementType.Light;
 
     }
     public override void TriggerPassiveAbility()
@@ -37,6 +35,7 @@ public class Hunter : ChessPieces
             {
                 var hunter = (Hunter)user;
                 hunter.health = Mathf.Min(hunter.health + hunter.healAmount, hunter.maxHealth);
+                lightDarkness.ChangeLightDarkLevel(5);
                 Debug.Log($"{hunter.type} healed for {hunter.healAmount} HP.");
             }
         ));
@@ -48,6 +47,7 @@ public class Hunter : ChessPieces
             user =>
             {
                 user.movementRange = user.maxMovementRange;
+                lightDarkness.ChangeLightDarkLevel(5);
                 Debug.Log($"{user.type} movement range reset to {user.maxMovementRange}.");
             }
         ));
@@ -59,14 +59,10 @@ public class Hunter : ChessPieces
             user => {
                 var hunter = (Hunter)user;
                 hunter.strongStrikeActive = true;
+                lightDarkness.ChangeLightDarkLevel(5);
                 Debug.Log($"{hunter.type} empowered next attack by {hunter.extraDamage} damage.");
             }
         ));
     }
-    public bool ConsumeStrongStrike()
-    {
-        if (!strongStrikeActive) return false;
-        strongStrikeActive = false;
-        return true;
-    }
+    
 }
