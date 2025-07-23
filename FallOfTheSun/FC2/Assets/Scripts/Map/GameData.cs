@@ -9,16 +9,21 @@ using System.Collections.Generic;
 
 public class GameData : MonoBehaviour
 {
-    public static GameData Instance;
-    
+    public static GameData Instance { get; private set; }
+
+    public GameMode CurrentGameMode;
+
+    // Dla SinglePlayer:
     public List<ChessPieceType> playerCharacters = new List<ChessPieceType>();
     public List<ChessPieceType> enemyCharacters = new List<ChessPieceType>();
 
+    // Dla MultiTeam:
+    public List<List<ChessPieceType>> selectedCharacters = new List<List<ChessPieceType>>();
+    public bool[] isAIControlledTeams;
 
+    [Header("Team Colors")]
+    public List<Color> teamColors = new List<Color>();
 
-
-    public GameMode CurrentGameMode = GameMode.SinglePlayer;
-    
     private void Awake()
     {
         // Jeśli nie ma instancji, to przypisz ją

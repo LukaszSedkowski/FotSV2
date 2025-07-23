@@ -25,6 +25,9 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private TeamPanel CurrentPiecePanel;
     [SerializeField] public SkillsPanel skillsPanel;
 
+    [Header("References")]
+    public HighlightManager HighlightManager;
+
     private float[,] TileWarFogHeight;
 
     public ChessPieces currentlyDragging;
@@ -52,6 +55,9 @@ public class ChessBoard : MonoBehaviour
         //Inicjalizacja managerów
         tileManager = FindAnyObjectByType<TileManager>();
         pieceManager = FindAnyObjectByType<PieceManager>();
+        highlightManager.Init(tileManager, pieceManager, this);
+        pieceManager = FindObjectOfType<PieceManager>();
+        highlightManager.Init(tileManager, pieceManager, this);
         fogOfWarManager = FindAnyObjectByType<FogOfWarManager>();
         highlightManager = FindAnyObjectByType<HighlightManager>();
         turnManager = FindAnyObjectByType<TurnManager>();
@@ -76,11 +82,13 @@ public class ChessBoard : MonoBehaviour
 
 
         fogOfWarManager.Init(tileManager);
-        highlightManager.Init(tileManager,pieceManager);
-        
-        int numberOfTeams = 2; // przykładowo (możesz pobrać z GameData lub zmiennej)
-        bool[] isAIControlled = new bool[] { false, true }; // przykład: gracz vs AI
+        highlightManager.Init(tileManager, pieceManager, this);
+
+        int numberOfTeams = GameData.Instance.selectedCharacters.Count;
+        bool[] isAIControlled = GameData.Instance.isAIControlledTeams;
+
         turnManager.Init(numberOfTeams, isAIControlled, pieceManager, CurrentPiecePanel, highlightManager, fogOfWarManager);
+
         // Wybór pionka z ID równym 1 na początku gry
         SelectPieceById(1, turnManager.currentTeam);
 
@@ -135,87 +143,62 @@ public class ChessBoard : MonoBehaviour
         }
     }
 
-    void HandleMouseInput()
+    private void HandleMouseInput()
     {
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            return;
+
+        if (!Input.GetMouseButtonDown(0))
+            return;
+
         Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit info, 100, LayerMask.GetMask("Tile")))
+
+        // --- 1) Spróbuj wybrać pionek ---
+        int pieceMask = LayerMask.GetMask("Piece");
+        if (Physics.Raycast(ray, out RaycastHit hitPiece, 100, pieceMask))
         {
-            Vector2Int hitPosition = LookupTileIndex(info.transform.gameObject);
-
-            // Wybieranie i przenoszenie pionka
-            if (Input.GetMouseButtonDown(0))
+            var cp = hitPiece.transform.GetComponent<ChessPieces>();
+            if (cp != null && cp.team == turnManager.currentTeam && !turnManager.isAIControlledTeam[turnManager.currentTeam])
             {
-                if (turnManager.isAIControlledTeam[turnManager.currentTeam])
-                {
-                    Debug.Log("To tura komputera. Nie możesz wybrać jego pionka.");
-                    return;
-                }
-                if (currentlyDragging != null && currentlyDragging.isMoving)
-                {
-                    Debug.Log("Ruch w toku. Poczekaj na zakończenie.");
-                    return;
-                }
-                if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
-                {
-                    // jesteśmy nad UI — zignoruj ruch pionkiem
-                    return;
-                }
-                if (pieceManager.chessPieces[hitPosition.x, hitPosition.y] != null)
-                {
-                    if (currentlyDragging == pieceManager.chessPieces[hitPosition.x, hitPosition.y])
-                    {
-                        // Jeśli kliknięto na aktualnie przeciąganego pionka, nic nie rób
-                    }
-                    else if (pieceManager.chessPieces[hitPosition.x, hitPosition.y].team == turnManager.currentTeam)
-                    {
-                        if (turnManager.isAIControlledTeam[turnManager.currentTeam])
-                        {
-                            Debug.Log("To tura komputera. Nie możesz wybrać jego pionka.");
-                            return;
-                        }
-
-                        currentlyDragging = pieceManager.chessPieces[hitPosition.x, hitPosition.y];
-                        if (currentlyDragging.team == turnManager.currentTeam && !turnManager.isAIControlledTeam[turnManager.currentTeam])
-                        {
-                            lastPlayerPiece = currentlyDragging;
-                        }
-                        Camera.main.GetComponent<CameraController>().SetTarget(currentlyDragging.transform);
-
-                        skillsPanel.SetCurrentPiece(currentlyDragging);
-                    }
-                    else
-                    {
-                        // Atak na przeciwnika
-                        attackManager.AttackEnemyPiece(currentlyDragging, pieceManager.chessPieces[hitPosition.x, hitPosition.y], tileManager.tileHeights, tileManager.obstacles, pieceManager.chessPieces);
-                        turnManager.CheckGameOver();
-                    }
-                }
-                else if (currentlyDragging != null)
-                {
-                    if (currentlyDragging.team != turnManager.currentTeam)
-                    {
-                        Debug.Log("Nie możesz ruszać pionkiem innej drużyny.");
-                        return;
-                    }
-
-                    Vector2Int previousPosition = new Vector2Int(currentlyDragging.currentX, currentlyDragging.currentY);
-                    bool validMove = MoveTo(currentlyDragging, hitPosition.x, hitPosition.y);
-                    if (!validMove)
-                    {
-                        currentlyDragging.transform.position = tileManager.GetTileCenter(previousPosition.x, previousPosition.y, currentlyDragging);
-
-                    }
-                    fogOfWarManager.UpdateFogOfWar(currentlyDragging.currentX, currentlyDragging.currentY, pieceManager.chessPieces);
-                    fogOfWarManager.UpdatePieceVisibility(pieceManager.chessPieces);
-                }
+                currentlyDragging = cp;
+                lastPlayerPiece = cp;
+                Camera.main.GetComponent<CameraController>().SetTarget(cp.transform);
+                skillsPanel.SetCurrentPiece(cp);
+                Debug.Log("[ChessBoard] Wybrano pionek: " + cp.name);
+                return;
             }
         }
-        else if (currentHover != -Vector2Int.one)
+
+        // --- 2) Dopiero teraz obsługa kliknięcia w kafelek ---
+        int tileMask = LayerMask.GetMask("Tile");
+        if (Physics.Raycast(ray, out RaycastHit hitTile, 100, tileMask))
         {
-            tileManager.tiles[currentHover.x, currentHover.y].GetComponent<MeshRenderer>().material.color = Color.white;
-            currentHover = -Vector2Int.one;
+            Debug.Log("[ChessBoard] Click na kafelek: " + hitTile.transform.name);
+            Vector2Int pos = LookupTileIndex(hitTile.transform.gameObject);
+
+            // Jeśli jest pionek na kafelku – to atak
+            var target = pieceManager.chessPieces[pos.x, pos.y];
+            if (target != null && currentlyDragging != null)
+            {
+                attackManager.AttackEnemyPiece(currentlyDragging, target,
+                    tileManager.tileHeights, tileManager.obstacles, pieceManager.chessPieces);
+                turnManager.CheckGameOver();
+                return;
+            }
+
+            // Ruch
+            if (currentlyDragging != null && currentlyDragging.team == turnManager.currentTeam)
+            {
+                bool moved = MoveTo(currentlyDragging, pos.x, pos.y);
+                if (!moved)
+                    currentlyDragging.transform.position = tileManager.GetTileCenter(
+                        currentlyDragging.currentX, currentlyDragging.currentY, currentlyDragging);
+                fogOfWarManager.UpdateFogOfWar(currentlyDragging.currentX, currentlyDragging.currentY, pieceManager.chessPieces);
+                fogOfWarManager.UpdatePieceVisibility(pieceManager.chessPieces);
+            }
         }
     }
+
     void HandleKeyboardShortcuts()
     {
         // Zmiana tury po wciśnięciu Q
