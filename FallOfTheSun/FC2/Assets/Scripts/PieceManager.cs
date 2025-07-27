@@ -45,14 +45,9 @@ public class PieceManager : MonoBehaviour
         chessPieces = new ChessPieces[TileManager.Tile_Count_X, TileManager.Tile_Count_Y];
 
         if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
-        {
             SpawnSinglePlayerPieces();
-        }
         else if (GameData.Instance.CurrentGameMode == GameMode.MultiTeam)
-        {
             SpawnMultiTeamPieces();
-        }
-
     }
 
 
@@ -80,34 +75,72 @@ public class PieceManager : MonoBehaviour
     }
     private void SpawnMultiTeamPieces()
     {
-        int i = 0, team = 0;
+        int team = 0;
+        int height = TileManager.Tile_Count_Y;
 
-        foreach (var pieces in GameMenu.Instance.selectedCharacters)
+        foreach (var pieces in GameData.Instance.selectedCharacters)
         {
-            int pieceID = 1;
-            foreach (var piece in pieces)
+            int x = 0, pieceID = 1;
+            // wybierz wiersz zale¿nie od teamu
+            int yStart = (team == 0) ? 0 : (height - 1);
+
+            foreach (var type in pieces)
             {
-                chessPieces[i, 0] = SpawnSinglePiece(piece, team, pieceID++);
-                Debug.Log("Stworzony pionek " + piece + " dla dru¿yny " + team);
-                i++;
+                chessPieces[x, yStart] = SpawnSinglePiece(type, team, pieceID++);
+                Debug.Log($"[PieceManager] Stworzony pionek {type} dla dru¿yny {team} na pozycji ({x},{yStart})");
+                x++;
             }
             team++;
         }
     }
 
+
     private ChessPieces SpawnSinglePiece(ChessPieceType type, int team, int id)
     {
         ChessPieces cp = Instantiate(prefabs[(int)type - 1], transform).GetComponent<ChessPieces>();
-        cp.Init(type, team, id); // Przekazanie ID
-        cp.GetComponent<MeshRenderer>().material = teamMaterials[team];
+        cp.Init(type, team, id);
 
+        var mr = cp.GetComponent<MeshRenderer>();
+
+        // --- Bezpieczne pobranie materia³u ---
+        Material baseMat;
+        if (team < teamMaterials.Length)
+        {
+            baseMat = teamMaterials[team];
+        }
+        else
+        {
+            Debug.LogWarning($"[PieceManager] Brak teamMaterials[{team}] (Length={teamMaterials.Length}), u¿ywam teamMaterials[0].");
+            baseMat = teamMaterials[0];
+        }
+
+        // --- Utworzenie instancji materia³u, ¿eby nie modyfikowaæ sharedMaterial ---
+        Material instMat = new Material(baseMat);
+
+        // --- Bezpieczne pobranie koloru ---
+        Color col = Color.white;
+        if (team < GameData.Instance.teamColors.Count)
+        {
+            col = GameData.Instance.teamColors[team];
+        }
+        else
+        {
+            Debug.LogWarning($"[PieceManager] Brak teamColors[{team}] (Count={GameData.Instance.teamColors.Count}), u¿ywam White.");
+        }
+
+        instMat.color = col;
+        mr.material = instMat;
+
+        // offsety i fog:
         if (groundOffsets.TryGetValue(type, out float offset))
             cp.groundOffset = offset;
         else
-            cp.groundOffset = 0.5f; // domyœlny offset
-            cp.fogOfWarManager = fogOfWarManager;
+            cp.groundOffset = 0.5f;
+
+        cp.fogOfWarManager = fogOfWarManager;
         return cp;
     }
+
 
 
     public void PositionAllPieces()

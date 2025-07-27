@@ -10,10 +10,11 @@ public class HighlightManager : MonoBehaviour
     public List<Vector2Int> highlightedTilesList = new List<Vector2Int>();
     public List<Node> currentPath = new List<Node>();
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    public void Init(TileManager tileManager, PieceManager pieceManager)
+    public void Init(TileManager tileManager, PieceManager pieceManager, ChessBoard chessBoard)
     {
         this.tileManager = tileManager;
         this.pieceManager = pieceManager;
+        this.chessBoard = chessBoard;    
     }
     void Start()
     {
@@ -24,10 +25,25 @@ public class HighlightManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+
     }
     public void HighlightPossibleMoves(ChessPieces cp)
     {
+        if (tileManager == null)
+        {
+            Debug.LogError("[HM] tileManager jest NULL – nie wywo³ano Init?");
+            return;
+        }
+        if (pieceManager == null)
+        {
+            Debug.LogError("[HM] pieceManager jest NULL – nie wywo³ano Init?");
+            return;
+        }
+        if (cp == null)
+        {
+            Debug.LogWarning("[HM] HighlightPossibleMoves: cp == null – pomijam");
+            return;
+        }
         ResetTileColors(); // Reset kolorów przed podœwietleniem nowych
         highlightedTilesList.Clear(); // Wyczyœæ poprzedni¹ listê
         currentPath.Clear();
@@ -110,6 +126,21 @@ public class HighlightManager : MonoBehaviour
 
     public void HighLightPath((int, int) end)
     {
+        if (chessBoard == null)
+        {
+            Debug.LogError("[HM] HighLightPath: chessBoard == null");
+            return;
+        }
+        if (tileManager == null)
+        {
+            Debug.LogError("[HM] HighLightPath: tileManager == null");
+            return;
+        }
+        if (chessBoard.currentlyDragging == null)
+        {
+            Debug.LogWarning("[HM] HighLightPath: currentlyDragging == null, pomijam");
+            return;
+        }
         List<Node> pathList = chessBoard.AStarPathFind(tileManager.tiles, (chessBoard.currentlyDragging.currentX, chessBoard.currentlyDragging.currentY), (end.Item1, end.Item2));
         foreach (var pos in pathList)
         {
