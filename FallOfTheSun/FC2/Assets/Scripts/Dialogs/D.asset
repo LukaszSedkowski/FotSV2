@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6fe9f6f94a73d540be7f42bed551afe, type: 3}
   m_Name: D
   m_EditorClassIdentifier: Assembly-CSharp::Dialogue
-  dialoguePanelPrefab: {fileID: 5723308062660867898, guid: e26a1fdcb8093fa44a65b4cae99e6652, type: 3}
-  extraPanelPrefab: {fileID: 1003867574478105763, guid: 1a1080b0f7bf18c4790abc803045a79e, type: 3}
+  dialoguePanelPrefab: {fileID: 8650234632287456524, guid: 988c100a2430d4942af561b047f14a74, type: 3}
+  defaultBackground: {fileID: 21300000, guid: 1692b501bab435945a719261a2584f99, type: 3}
   allDialogues:
   - dialogueName: D
     characters:
