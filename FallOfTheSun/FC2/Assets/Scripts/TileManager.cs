@@ -34,6 +34,9 @@ public class TileManager : MonoBehaviour
     public bool[,] obstacles;
     private List<Vector2Int> hideoutPositions = new List<Vector2Int>();
 
+    public List<Vector2Int> lightTiles = new List<Vector2Int>();
+    public List<Vector2Int> darkTiles = new List<Vector2Int>();
+
     public const int Tile_Count_X = 40;
     public const int Tile_Count_Y = 40;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -42,6 +45,7 @@ public class TileManager : MonoBehaviour
         _instance = this;
         InitializeMap();
     }
+
     public void InitializeMap()
     {
         tiles = new GameObject[Tile_Count_X, Tile_Count_Y];
@@ -53,6 +57,7 @@ public class TileManager : MonoBehaviour
         InitializeTileHeights();
         AddRandomObstacles(10);
         AddRandomHideouts(10);
+        AddLightAndDarkTiles(10);
     }
     private void GenerateAllTiles(float tileSize, int tileCountX, int tileCountY)
     {
@@ -263,7 +268,7 @@ public class TileManager : MonoBehaviour
     }*/
     private void AddRandomObstacles(int number)
     {
-        for (int i = 1; i < number-1; i++)
+        for (int i = 1; i < number - 1; i++)
         {
             int x = UnityEngine.Random.Range(0, Tile_Count_X);
             int y = UnityEngine.Random.Range(0, Tile_Count_Y);
@@ -397,4 +402,51 @@ public class TileManager : MonoBehaviour
             }
         }
     }
+    private void AddLightAndDarkTiles(int count)
+    {
+        int tries = 0;
+        int maxTries = 1000;
+
+        while (lightTiles.Count < count && tries < maxTries)
+        {
+            int x = Random.Range(0, Tile_Count_X);
+            int y = Random.Range(0, Tile_Count_Y);
+            Vector2Int pos = new Vector2Int(x, y);
+
+            if (!lightTiles.Contains(pos) && !darkTiles.Contains(pos) && !obstacles[x, y])
+            {
+                lightTiles.Add(pos);
+                GameObject tile = tiles[x, y];
+                //tile.tag = "LightTile";
+
+                var renderer = tile.GetComponent<Renderer>();
+                if (renderer != null)
+                    renderer.material.color = Color.cyan; // Jasne pole
+            }
+
+            tries++;
+        }
+
+        tries = 0;
+        while (darkTiles.Count < count && tries < maxTries)
+        {
+            int x = Random.Range(0, Tile_Count_X);
+            int y = Random.Range(0, Tile_Count_Y);
+            Vector2Int pos = new Vector2Int(x, y);
+
+            if (!darkTiles.Contains(pos) && !lightTiles.Contains(pos) && !obstacles[x, y])
+            {
+                darkTiles.Add(pos);
+                GameObject tile = tiles[x, y];
+                //tile.tag = "DarkTile";
+
+                var renderer = tile.GetComponent<Renderer>();
+                if (renderer != null)
+                    renderer.material.color = Color.magenta; // Mroczne pole
+            }
+
+            tries++;
+        }
+    }
+
 }
