@@ -46,7 +46,12 @@ public class AIController : MonoBehaviour
             board.currentlyDragging = piece;
 
             ChessPieces target = FindBestTarget(piece);
-            if (target == null) continue;
+            if (target == null)
+            {
+                // NIE WIDZI WROGA – WYKONAJ LOSOWY RUCH
+                yield return board.StartCoroutine(MoveRandomly(piece));
+                continue;
+            }
 
             float dist = Vector2Int.Distance(
                 new Vector2Int(piece.currentX, piece.currentY),
@@ -92,10 +97,12 @@ public class AIController : MonoBehaviour
         }
 
         yield return new WaitForSeconds(1f);
-        turnManager.ChangeTurn();
+        turnManager.CheckGameOver();
+
+            turnManager.ChangeTurn();
+        
     }
 
-    // NOWA METODA (dodaj j¹ do AIController)
     private IEnumerator MovePieceAndHandleCamera(ChessPieces piece, List<Node> path, bool wasVisibleAtStart)
     {
         var cameraController = Camera.main.GetComponent<CameraController>();
@@ -259,6 +266,46 @@ public class AIController : MonoBehaviour
         }
 
         return best;
+    }
+    private IEnumerator MoveRandomly(ChessPieces piece)
+    {
+        // Szukamy wszystkich s¹siaduj¹cych wolnych pól
+        List<Vector2Int> possibleMoves = new List<Vector2Int>();
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                if (dx == 0 && dy == 0) continue;
+                int nx = piece.currentX + dx;
+                int ny = piece.currentY + dy;
+                if (nx < 0 || ny < 0 || nx >= TileManager.Tile_Count_X || ny >= TileManager.Tile_Count_Y)
+                    continue;
+                if (pieceManager.GetPieceAt(nx, ny) != null)
+                    continue;
+                if (board.IsObstacle(nx, ny))
+                    continue;
+
+                possibleMoves.Add(new Vector2Int(nx, ny));
+            }
+        }
+
+        if (possibleMoves.Count > 0)
+        {
+            // Wybierz losowy ruch
+            Vector2Int moveTo = possibleMoves[Random.Range(0, possibleMoves.Count)];
+            List<Node> path = board.AStarPathFind(
+                board.GetTiles(),
+                (piece.currentX, piece.currentY),
+                (moveTo.x, moveTo.y)
+            );
+            if (path.Count > 1)
+            {
+                bool wasVisible = piece.IsVisibleToPlayer();
+                yield return board.StartCoroutine(MovePieceAndHandleCamera(piece, path, wasVisible));
+            }
+        }
+        // jeœli nie ma gdzie iœæ, po prostu koñczy turê
+        yield break;
     }
 
 }

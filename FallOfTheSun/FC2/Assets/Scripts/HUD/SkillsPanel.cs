@@ -19,9 +19,8 @@ public class SkillsPanel : MonoBehaviour
             panel.SetActive(true);
 
         // ZnajdŸ referencjê do ChessBoard
-        chessBoard = FindObjectOfType<ChessBoard>();
         if (chessBoard == null)
-            Debug.LogError("SkillsPanel: Nie znaleziono ChessBoard w scenie!");
+            chessBoard = FindAnyObjectByType<ChessBoard>();
 
         // Przygotuj listener-y do przycisków i aktywuj je
         for (int i = 0; i < buttons.Count; i++)
@@ -64,15 +63,35 @@ public class SkillsPanel : MonoBehaviour
     /// </summary>
     private void RefreshPanel()
     {
+        if (currentPiece == null)
+        {
+            foreach (var btn in buttons)
+            {
+                btn.gameObject.SetActive(false);
+            }
+            return;
+        }
+
         for (int i = 0; i < buttons.Count; i++)
         {
             var btn = buttons[i];
-            btn.interactable = currentPiece != null && i < currentPiece.abilities.Count;
-            var txt = btn.GetComponentInChildren<Text>();
-            if (currentPiece != null && i < currentPiece.abilities.Count)
+            var txt = btn.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+            if (i < currentPiece.abilities.Count)
+            {
+                btn.gameObject.SetActive(true);
+                btn.interactable = true;
+                if (currentPiece == null)
+                    Debug.Log("Curent piece null");
+                if (currentPiece.abilities == null)
+                    Debug.Log("Curent piece abilities null");
                 txt.text = currentPiece.abilities[i].abilityName;
+                // jeœli chcesz obs³u¿yæ ikony: 
+                // btn.GetComponentInChildren<Image>().sprite = currentPiece.abilities[i].icon;
+            }
             else
-                txt.text = "--";
+            {
+                btn.gameObject.SetActive(false);
+            }
         }
     }
 
