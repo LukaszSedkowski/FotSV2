@@ -32,6 +32,7 @@ public class TurnManager : MonoBehaviour
     }
     public void ChangeTurn()
     {
+        ApplyLightDarkBonuses();
         int attempts = numberOfTeams;
 
         do
@@ -110,45 +111,45 @@ public class TurnManager : MonoBehaviour
         // Je�li nie znaleziono przeciwnik�w, gra si� ko�czy
         GameOver();
     }
-private void GameOver()
-{
-    Debug.Log("Gra zakończona! Drużyna " + currentTeam + " wygrywa!");
-
-    if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
+    private void GameOver()
     {
-        bool playerHasPieces = false;
+        Debug.Log("Gra zakończona! Drużyna " + currentTeam + " wygrywa!");
 
-        foreach (var piece in pieceManager.chessPieces)
+        if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
         {
-            if (piece != null && piece.team == 0) // Zakładamy że gracz to team 0
+            bool playerHasPieces = false;
+
+            foreach (var piece in pieceManager.chessPieces)
             {
-                playerHasPieces = true;
-                break;
+                if (piece != null && piece.team == 0) // Zakładamy że gracz to team 0
+                {
+                    playerHasPieces = true;
+                    break;
+                }
+            }
+
+            if (playerHasPieces)
+            {
+                StartCoroutine(LoadScene("Map")); // Gracz wygrał → przejście do Mapy
+            }
+            else
+            {
+                StartCoroutine(LoadScene("MainMenu")); // Gracz przegrał → MainMenu
             }
         }
-
-        if (playerHasPieces)
+        else if (GameData.Instance.CurrentGameMode == GameMode.MultiTeam)
         {
-            StartCoroutine(LoadScene("Map")); // Gracz wygrał → przejście do Mapy
-        }
-        else
-        {
-            StartCoroutine(LoadScene("MainMenu")); // Gracz przegrał → MainMenu
+            Debug.Log("Powrót do Menu");
+            StartCoroutine(LoadScene("MainMenu"));
         }
     }
-    else if (GameData.Instance.CurrentGameMode == GameMode.MultiTeam)
+
+    private IEnumerator LoadScene(string sceneName)
     {
-        Debug.Log("Powrót do Menu");
-        StartCoroutine(LoadScene("MainMenu"));
+        Debug.Log("Ładowanie sceny: " + sceneName);
+        yield return new WaitForSeconds(1); // Opcjonalny delay
+        SceneManager.LoadScene(sceneName);
     }
-}
-
-private IEnumerator LoadScene(string sceneName)
-{
-    Debug.Log("Ładowanie sceny: " + sceneName);
-    yield return new WaitForSeconds(1); // Opcjonalny delay
-    SceneManager.LoadScene(sceneName);
-}
 
 
 
@@ -190,6 +191,27 @@ private IEnumerator LoadScene(string sceneName)
         else
         {
             Debug.Log("Brak pionk�w dla dru�yny " + team);
+        }
+    }
+    private void ApplyLightDarkBonuses()
+    {
+        foreach (var piece in pieceManager.chessPieces)
+        {
+            if (piece == null) continue;
+
+            int x = piece.currentX;
+            int y = piece.currentY;
+
+            Vector2Int pos = new Vector2Int(x, y);
+
+            if (TileManager.Instance.lightTiles.Contains(pos))
+            {
+                piece.lightDarkness.ChangeLightDarkLevel(5); // światło wzrasta
+            }
+            else if (TileManager.Instance.darkTiles.Contains(pos))
+            {
+                piece.lightDarkness.ChangeLightDarkLevel(-5); // mrok wzrasta
+            }
         }
     }
 }

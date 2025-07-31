@@ -34,7 +34,8 @@ public class PlayerMovement : MonoBehaviour
     public string Map = "SampleScene"; // podaj nazwę sceny z Build
 
     private List<ChessPieceType> selectedCharacters;
-    public Text enemyInfoText; // przeciągnij UI Text z Canvas Info do tego pola
+    public Text enemyInfoText;
+    public Text autoEnemyInfoText;
 public Button infoButton;
 
 public DialogueManager dialogueManager;
@@ -234,7 +235,9 @@ void MoveToNextWaypoint()
             {
                 CheckPanel.SetActive(true);
                 Debug.Log("CheckPanel shown at: " + currentWaypoint.name); // Debugowanie
+                
             }
+            ShowEnemiesAutoAtWaypoint(currentWaypoint);
         }
     }
 }
@@ -402,6 +405,27 @@ public void ShowEnemiesAtSelectedWaypoint()
         Debug.Log(noSelectionMsg);
     }
 }
+public void ShowEnemiesAutoAtWaypoint(Waypoint waypoint)
+{
+    if (waypoint != null)
+    {
+        if (waypoint.enemyCharacters.Count > 0)
+        {
+            // Tworzymy tekst, każdy wróg w nowej linii z myślnikiem
+            string enemiesLine = string.Join("\n- ", waypoint.enemyCharacters.Select(e => e.ToString()));
+            string info = "Wrogowie:\n- " + enemiesLine;
+
+            autoEnemyInfoText.text = info;
+            Debug.Log("Auto info o wrogach na punkcie " + waypoint.name + ":\n" + info);
+        }
+        else
+        {
+            string noEnemiesMsg = "Brak przeciwników na punkcie: " + waypoint.name;
+            autoEnemyInfoText.text = noEnemiesMsg;
+        }
+    }
+}
+
 
 
 

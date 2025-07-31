@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using UnityEditor.ShaderGraph;
 using UnityEngine;
+using static UnityEditor.PlayerSettings;
 
 public class HighlightManager : MonoBehaviour
 {
@@ -9,17 +11,36 @@ public class HighlightManager : MonoBehaviour
     public bool[,] highlightedTiles;
     public List<Vector2Int> highlightedTilesList = new List<Vector2Int>();
     public List<Node> currentPath = new List<Node>();
+    private HighlightType[,] tileHighlightPriority;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
+    public enum HighlightType
+    {
+        None = 0,
+        Move = 1,
+        LightTile = 3,
+        DarkTile = 4,
+        Path = 2
+    }
+    private static readonly Dictionary<HighlightType, Color> highlightColors = new()
+    {
+    { HighlightType.None, Color.white },
+    { HighlightType.Move, Color.yellow },
+    { HighlightType.LightTile, new Color(10f, 10f, 10f)}, // lub Color.magenta dynamicznie
+    { HighlightType.DarkTile, new Color(-255f, -255f, -255f) }, // lub Color.magenta dynamicznie
+    { HighlightType.Path, Color.blue }
+    };
     public void Init(TileManager tileManager, PieceManager pieceManager, ChessBoard chessBoard)
     {
         this.tileManager = tileManager;
         this.pieceManager = pieceManager;
-        this.chessBoard = chessBoard;    
+        this.chessBoard = chessBoard;
     }
     void Start()
     {
         if (chessBoard == null)
             chessBoard = FindAnyObjectByType<ChessBoard>();
+        tileHighlightPriority = new HighlightType[TileManager.Tile_Count_X, TileManager.Tile_Count_Y];
     }
 
     // Update is called once per frame
@@ -92,12 +113,9 @@ public class HighlightManager : MonoBehaviour
                             cost[newX, newY] = cost[currentX, currentY] + movementCost;
                             queue.Enqueue((newX, newY));
 
-                            Renderer tileRenderer = tileManager.tiles[newX, newY].GetComponent<Renderer>();
-                            if (tileRenderer != null)
-                            {
-                                tileRenderer.material.color = Color.yellow;
-                                highlightedTilesList.Add(new Vector2Int(newX, newY)); // Dodaj wspó³rzêdne do listy
-                            }
+                            SetTileHighlight(newX, newY, HighlightType.Move);
+                            highlightedTilesList.Add(new Vector2Int(newX, newY)); // Dodaj wspó³rzêdne do listy
+
                         }
                     }
                 }
@@ -108,19 +126,11 @@ public class HighlightManager : MonoBehaviour
     {
         foreach (Vector2Int pos in highlightedTilesList)
         {
-            Renderer tileRenderer = tileManager.tiles[pos.x, pos.y].GetComponent<Renderer>();
-            if (tileRenderer != null)
-            {
-                tileRenderer.material.color = Color.yellow;
-            }
+            SetTileHighlight(pos.x, pos.y, HighlightType.Move);
         }
         foreach (Node pos in currentPath)
         {
-            Renderer tileRenderer = tileManager.tiles[pos.X, pos.Y].GetComponent<Renderer>();
-            if (tileRenderer != null)
-            {
-                tileRenderer.material.color = Color.blue;
-            }
+            SetTileHighlight(pos.X, pos.Y, HighlightType.Path);
         }
     }
 
@@ -144,24 +154,47 @@ public class HighlightManager : MonoBehaviour
         List<Node> pathList = chessBoard.AStarPathFind(tileManager.tiles, (chessBoard.currentlyDragging.currentX, chessBoard.currentlyDragging.currentY), (end.Item1, end.Item2));
         foreach (var pos in pathList)
         {
-            Renderer tileRenderer = tileManager.tiles[pos.X, pos.Y].GetComponent<Renderer>();
-            if (tileRenderer != null)
-            {
-                tileRenderer.material.color = Color.blue;
-                currentPath.Add(new Node(pos.X, pos.Y));
-            }
+            SetTileHighlight(pos.X, pos.Y, HighlightType.Path);
+            currentPath.Add(new Node(pos.X, pos.Y));
         }
     }
 
     public void ResetTileColors()
     {
+        tileHighlightPriority = new HighlightType[TileManager.Tile_Count_X, TileManager.Tile_Count_Y];
+
+        var lightTiles = TileManager.Instance.lightTiles;
+        var darkTiles = TileManager.Instance.darkTiles;
+
         for (int x = 0; x < TileManager.Tile_Count_X; x++)
         {
             for (int y = 0; y < TileManager.Tile_Count_Y; y++)
             {
-                MeshRenderer tileRenderer = tileManager.tiles[x, y].GetComponent<MeshRenderer>();
-                tileRenderer.material.color = Color.white; // Resetowanie koloru na bia³y
+                Vector2Int pos = new Vector2Int(x, y);
+
+                if (lightTiles.Contains(pos))
+                    SetTileHighlight(x, y, HighlightType.LightTile);
+                else if (darkTiles.Contains(pos))
+                    SetTileHighlight(x, y, HighlightType.DarkTile);
+                else
+                    SetTileHighlight(x, y, HighlightType.None);
             }
+        }
+    }
+    public void SetTileHighlight(int x, int y, HighlightType type)
+    {
+        if (x < 0 || y < 0 || x >= TileManager.Tile_Count_X || y >= TileManager.Tile_Count_Y)
+            return;
+
+        if ((int)type >= (int)tileHighlightPriority[x, y])
+        {
+            var renderer = tileManager.tiles[x, y].GetComponent<MeshRenderer>();
+            if (renderer != null && highlightColors.TryGetValue(type, out Color color))
+            {
+                renderer.material.color = color;
+            }
+
+            tileHighlightPriority[x, y] = type;
         }
     }
 }

@@ -190,6 +190,8 @@ MonoBehaviour:
   attackCost: 0
   groundOffset: 0.5
   visionRange: 3
+  healAmount: 20
+  extraDamage: 30
   hasPassiveAbility: 0
 --- !u!54 &91785321
 Rigidbody:
@@ -931,9 +933,9 @@ MonoBehaviour:
   attackCost: 0
   groundOffset: 0.5
   visionRange: 3
-  hasPassiveAbility: 0
   healAmount: 20
   extraDamage: 30
+  hasPassiveAbility: 0
 --- !u!54 &196541851
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2347,9 +2349,9 @@ MonoBehaviour:
   attackCost: 0
   groundOffset: 0.5
   visionRange: 3
-  hasPassiveAbility: 0
   healAmount: 20
   extraDamage: 30
+  hasPassiveAbility: 0
 --- !u!54 &607676249
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2489,7 +2491,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 200, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 100, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &630323303
 MonoBehaviour:
@@ -2608,6 +2610,8 @@ MonoBehaviour:
   attackCost: 0
   groundOffset: 0.5
   visionRange: 3
+  healAmount: 20
+  extraDamage: 30
   hasPassiveAbility: 0
 --- !u!54 &773179778
 Rigidbody:
@@ -3190,8 +3194,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 0, y: 85}
-  m_SizeDelta: {x: 800, y: 200}
+  m_AnchoredPosition: {x: 0, y: 75}
+  m_SizeDelta: {x: 800, y: 100}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &1031889120
 MonoBehaviour:
@@ -3358,7 +3362,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: -200, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 100, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1123335809
 MonoBehaviour:
@@ -5527,6 +5531,8 @@ MonoBehaviour:
   attackCost: 0
   groundOffset: 0.5
   visionRange: 3
+  healAmount: 20
+  extraDamage: 30
   hasPassiveAbility: 0
 --- !u!54 &1548296245
 Rigidbody:
@@ -5941,6 +5947,7 @@ MonoBehaviour:
   obstaclePrefab: {fileID: 2018999369}
   CurrentPiecePanel: {fileID: 1936734076}
   skillsPanel: {fileID: 1031889122}
+  HighlightManager: {fileID: 0}
   currentlyDragging: {fileID: 0}
   lastPlayerPiece: {fileID: 0}
 --- !u!4 &1685910853
@@ -6103,6 +6110,8 @@ MonoBehaviour:
   attackCost: 0
   groundOffset: 0.5
   visionRange: 3
+  healAmount: 20
+  extraDamage: 30
   hasPassiveAbility: 0
 --- !u!54 &1690661792
 Rigidbody:
@@ -6469,7 +6478,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 100, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1878465444
 MonoBehaviour:

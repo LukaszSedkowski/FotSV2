@@ -3,7 +3,9 @@ guid: b6fe9f6f94a73d540be7f42bed551afe
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - dialoguePanelPrefab: {fileID: 8650234632287456524, guid: 988c100a2430d4942af561b047f14a74, type: 3}
+  - defaultBackground: {fileID: 21300000, guid: 749ce262f54fc894cb6c2029d0f5e086, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

@@ -5,12 +5,14 @@ using TMPro;
 public class DialogueManager : MonoBehaviour
 {
     public GameObject dialoguePanelPrefab;
+    public Sprite defaultBackground; // <- domyślne tło
 
     public DialogueData[] allDialogues;
 
     private GameObject dialoguePanelInstance;
     private Image leftPortrait;
     private Image rightPortrait;
+    private Image backgroundImage; // <- nowe pole
     private TMP_Text dialogueText;
 
     private int currentLine = 0;
@@ -31,78 +33,80 @@ public class DialogueManager : MonoBehaviour
         Transform left = dialoguePanelInstance.transform.Find("LeftPortrait");
         Transform right = dialoguePanelInstance.transform.Find("RightPortrait");
         Transform text = dialoguePanelInstance.transform.Find("DialogueText");
+        Transform bg = dialoguePanelInstance.transform.Find("Background"); // <- nowe
 
-        if (left == null || right == null || text == null)
+        if (left == null || right == null || text == null || bg == null)
         {
-            Debug.LogError("Brak UI w panelu dialogowym.");
+            Debug.LogError("Brak UI elementów w panelu dialogowym.");
             return;
         }
 
         leftPortrait = left.GetComponent<Image>();
         rightPortrait = right.GetComponent<Image>();
         dialogueText = text.GetComponent<TMP_Text>();
+        backgroundImage = bg.GetComponent<Image>(); // <- nowe
 
+        backgroundImage.sprite = defaultBackground; // <- przypisanie tła
         dialoguePanelInstance.SetActive(false);
     }
 
-void Update()
-{
-    Debug.Log("Update działa");
-    if (dialoguePanelInstance != null && dialoguePanelInstance.activeSelf)
+    void Update()
     {
-        if (Input.GetMouseButtonDown(1)) // Prawy przycisk myszy
+        if (dialoguePanelInstance != null && dialoguePanelInstance.activeSelf)
         {
-                        Debug.Log("PPM kliknięty");
-            NextLine();
+            if (Input.GetMouseButtonDown(1)) // Prawy przycisk myszy
+            {
+                NextLine();
+            }
         }
     }
-}
 
-    // Metoda uruchamiająca dialog po nazwie
-public void StartDialogueByName(string dialogueName)
-{
-    if (dialoguePanelInstance == null)
+    public void StartDialogueByName(string dialogueName)
     {
-        Canvas canvas = FindObjectOfType<Canvas>();
-        if (canvas == null)
+        if (dialoguePanelInstance == null)
         {
-            Debug.LogError("Brak Canvas w scenie!");
+            Canvas canvas = FindObjectOfType<Canvas>();
+            if (canvas == null)
+            {
+                Debug.LogError("Brak Canvas w scenie!");
+                return;
+            }
+
+            dialoguePanelInstance = Instantiate(dialoguePanelPrefab);
+            dialoguePanelInstance.transform.SetParent(canvas.transform, false);
+
+            Transform left = dialoguePanelInstance.transform.Find("LeftPortrait");
+            Transform right = dialoguePanelInstance.transform.Find("RightPortrait");
+            Transform text = dialoguePanelInstance.transform.Find("DialogueText");
+            Transform bg = dialoguePanelInstance.transform.Find("Background"); // <- nowe
+
+            if (left == null || right == null || text == null || bg == null)
+            {
+                Debug.LogError("Brak UI elementów w panelu dialogowym.");
+                return;
+            }
+
+            leftPortrait = left.GetComponent<Image>();
+            rightPortrait = right.GetComponent<Image>();
+            dialogueText = text.GetComponent<TMP_Text>();
+            backgroundImage = bg.GetComponent<Image>(); // <- nowe
+
+            backgroundImage.sprite = defaultBackground; // <- przypisanie
+            dialoguePanelInstance.SetActive(false);
+        }
+
+        currentDialogue = FindDialogueByName(dialogueName);
+        if (currentDialogue == null)
+        {
+            Debug.LogWarning($"Dialog o nazwie '{dialogueName}' nie został znaleziony!");
             return;
         }
 
-        dialoguePanelInstance = Instantiate(dialoguePanelPrefab);
-        dialoguePanelInstance.transform.SetParent(canvas.transform, false);
-
-        Transform left = dialoguePanelInstance.transform.Find("LeftPortrait");
-        Transform right = dialoguePanelInstance.transform.Find("RightPortrait");
-        Transform text = dialoguePanelInstance.transform.Find("DialogueText");
-
-        if (left == null || right == null || text == null)
-        {
-            Debug.LogError("Brak UI w panelu dialogowym.");
-            return;
-        }
-
-        leftPortrait = left.GetComponent<Image>();
-        rightPortrait = right.GetComponent<Image>();
-        dialogueText = text.GetComponent<TMP_Text>();
-
-        dialoguePanelInstance.SetActive(false);
+        currentLine = 0;
+        dialoguePanelInstance.SetActive(true);
+        ShowLine(currentLine);
+        currentLine++;
     }
-
-    currentDialogue = FindDialogueByName(dialogueName);
-    if (currentDialogue == null)
-    {
-        Debug.LogWarning($"Dialog o nazwie '{dialogueName}' nie został znaleziony!");
-        return;
-    }
-
-    currentLine = 0;
-    dialoguePanelInstance.SetActive(true);
-    ShowLine(currentLine);
-    currentLine++;
-}
-
 
     private DialogueData FindDialogueByName(string name)
     {
@@ -140,7 +144,8 @@ public void StartDialogueByName(string dialogueName)
             leftPortrait.color = new Color(1, 1, 1, 0);
         }
 
-        dialogueText.text = $"{speaker.name}:\n\n{line.text}";
+        dialogueText.text = $"<size=36><b>{speaker.name}</b></size>\n\n<size=20>{line.text}</size>";
+
     }
 
     private Character GetCharacterByType(CharacterType type)
@@ -159,25 +164,27 @@ public void StartDialogueByName(string dialogueName)
         dialoguePanelInstance.SetActive(false);
         Debug.Log("Dialog zakończony.");
     }
-public void NextLine()
-{
-    if (currentDialogue == null)
+
+    public void NextLine()
     {
-        Debug.LogWarning("Nie załadowano żadnego dialogu.");
-        return;
+        if (currentDialogue == null)
+        {
+            Debug.LogWarning("Nie załadowano żadnego dialogu.");
+            return;
+        }
+
+        if (currentLine >= currentDialogue.dialogueLines.Length)
+        {
+            EndDialogue();
+            return;
+        }
+
+        ShowLine(currentLine);
+        currentLine++;
     }
 
-    if (currentLine >= currentDialogue.dialogueLines.Length)
+    public GameObject GetPanelInstance()
     {
-        EndDialogue();
-        return;
+        return dialoguePanelInstance;
     }
-
-    ShowLine(currentLine);
-    currentLine++;
-}
-public GameObject GetPanelInstance()
-{
-    return dialoguePanelInstance;
-}
 }

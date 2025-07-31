@@ -9,47 +9,72 @@ public class SkillNode : MonoBehaviour
 
     private bool unlocked = false;
     private List<GameObject> lines = new List<GameObject>();
-
+    public GameObject parentLine;
+    
     void Start()
     {
         button.onClick.AddListener(OnClick);
-        button.interactable = false;
+
 
         DrawLines();
     }
+    void Awake()
+{
+    button.interactable = false;
+}
 
     public void Unlock()
     {
         unlocked = true;
         button.interactable = true;
+        
     }
 
-    void OnClick()
+void OnClick()
+{
+    if (!unlocked)
+        return;
+
+    button.interactable = false;
+
+    // USTAW KOLOR NA ZIELONY
+    var image = button.GetComponent<Image>();
+    if (image != null)
     {
-        if (!unlocked)
-            return;
+        image.color = Color.green;
+    }
 
-        button.interactable = false;
-
-        foreach (SkillNode child in children)
+foreach (SkillNode child in children)
+{
+    // Zmień kolor linii prowadzącej do dziecka
+    if (child.parentLine != null)
+    {
+        var lineImage = child.parentLine.GetComponent<Image>();
+        if (lineImage != null)
         {
-            child.Unlock();
+            lineImage.color = Color.green;
         }
     }
 
-    void DrawLines()
-    {
-        foreach (SkillNode child in children)
-        {
-            CreateLineBetween(button.transform as RectTransform, child.button.transform as RectTransform);
-        }
-    }
+    child.Unlock();
+}
+}
 
-    void CreateLineBetween(RectTransform start, RectTransform end)
+void DrawLines()
+{
+    foreach (SkillNode child in children)
+    {
+        GameObject line = CreateLineBetween(button.transform as RectTransform, child.button.transform as RectTransform);
+        child.parentLine = line; // <-- ustaw linię prowadzącą do dziecka
+    }
+}
+
+
+GameObject CreateLineBetween(RectTransform start, RectTransform end)
 {
     GameObject line = new GameObject("Line");
     line.transform.SetParent(transform.parent);
-    line.transform.SetSiblingIndex(0); // <-- TU zmiana, linia będzie pod przyciskami
+    line.transform.SetSiblingIndex(0); // linia pod przyciskami
 
     Image img = line.AddComponent<Image>();
     img.color = Color.white;
@@ -70,6 +95,12 @@ public class SkillNode : MonoBehaviour
     rt.rotation = Quaternion.Euler(0, 0, angle);
 
     lines.Add(line);
+    return line;
+}
+public void ForceClick()
+{
+    OnClick();
+    
 }
 
 }
