@@ -91,8 +91,10 @@ public class AttackManager : MonoBehaviour
 
                 // Zu¿ycie ruchu i ewentualne pasywki
                 attacker.movementRange -= attacker.attackCost;
+
                 attacker.TriggerPassiveAbility();
-///HighlightPossibleMoves(attacker);
+
+                ///HighlightPossibleMoves(attacker);
 
                 // Usuniêcie pionka, jeœli zdrowie <= 0
                 if (target.health <= 0)

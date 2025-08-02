@@ -184,12 +184,12 @@ public class TileManager : MonoBehaviour
                 }
 
                 // Filar pod kafelek
-                GameObject pillar = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                pillar.transform.parent = go.transform;
-                pillar.transform.localScale = new Vector3(1, height - 1f, 1);
-                pillar.transform.localPosition = new Vector3(0, -(height / 2), 0);
-                pillar.GetComponent<MeshRenderer>().material = pillarMaterial;
-
+                /*  GameObject pillar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                  pillar.transform.parent = go.transform;
+                  pillar.transform.localScale = new Vector3(1, height - 1f, 1);
+                  pillar.transform.localPosition = new Vector3(0, -(height / 2), 0);
+                  pillar.GetComponent<MeshRenderer>().material = pillarMaterial;
+                */
                 // Obróæ schody w stronê wy¿szego kafelka
                 if (isRamp)
                 {
@@ -208,37 +208,85 @@ public class TileManager : MonoBehaviour
 
         GenerateBorderPillars();
         AddFenceAroundMap(tileCountX, tileCountY);
+        GenerateCombinedPillars();
+    }
+    private void GenerateCombinedPillars()
+    {
+        List<CombineInstance> combineInstances = new List<CombineInstance>();
+        Mesh pillarMesh = GameObject.CreatePrimitive(PrimitiveType.Cube).GetComponent<MeshFilter>().sharedMesh;
+        DestroyImmediate(GameObject.CreatePrimitive(PrimitiveType.Cube)); // usuwamy po u¿yciu
 
+        for (int x = 0; x < Tile_Count_X; x++)
+        {
+            for (int y = 0; y < Tile_Count_Y; y++)
+            {
+                float height = tileHeights[x, y];
+                if (height <= 1f) continue; // nie generuj filara, jeœli jest za niski
+
+                Vector3 scale = new Vector3(1, height - 1f, 1);
+                Vector3 position = new Vector3(x * tileSize, (height - 1f) / 2, y * tileSize); // pozycja na œrodku filara
+
+                Matrix4x4 matrix = Matrix4x4.TRS(position, Quaternion.identity, scale);
+
+                combineInstances.Add(new CombineInstance
+                {
+                    mesh = pillarMesh,
+                    transform = matrix
+                });
+            }
+        }
+
+        GameObject combinedPillars = new GameObject("Combined Tile Pillars");
+        combinedPillars.transform.parent = transform;
+
+        Mesh combinedMesh = new Mesh();
+        combinedMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        combinedMesh.CombineMeshes(combineInstances.ToArray());
+
+        MeshFilter mf = combinedPillars.AddComponent<MeshFilter>();
+        mf.mesh = combinedMesh;
+
+        MeshRenderer mr = combinedPillars.AddComponent<MeshRenderer>();
+        mr.material = pillarMaterial;
+
+        // Opcjonalnie:
+        // combinedPillars.AddComponent<MeshCollider>();
     }
     private void GenerateBorderPillars()
     {
         int tileCountX = tiles.GetLength(0);
         int tileCountY = tiles.GetLength(1);
-        float pillarHeight = 5.0f; // dopasuj do swojego prefab'u
-        int borderWidth = 35;
+        float pillarHeight = 3f;
+        int borderWidth = 100;
 
-        for (int x = -borderWidth; x < tileCountX + borderWidth; x++)
-        {
-            for (int y = -borderWidth; y < tileCountY + borderWidth; y++)
-            {
-                // sprawdzamy, czy kafelek znajduje siê *poza* plansz¹
-                bool isOutside = x < 0 || y < 0 || x >= tileCountX || y >= tileCountY;
+        // Rozmiary ca³ego "obszaru obramowania"
+        float totalWidthX = (tileCountX + 2 * borderWidth) * tileSize;
+        float totalWidthY = (tileCountY + 2 * borderWidth) * tileSize;
 
-                // sprawdzamy, czy jesteœmy w obszarze nale¿¹cym do granicy
-                bool isInBorderArea = x < 0 + borderWidth || y < 0 + borderWidth ||
-                                      x >= tileCountX - borderWidth || y >= tileCountY - borderWidth;
+        // Stwórz nowy GameObject, który bêdzie obramowaniem
+        GameObject borderBlock = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        borderBlock.name = "Border Pillars Block";
+        borderBlock.transform.parent = transform;
 
-                if (isOutside && isInBorderArea)
-                {
-                    Vector3 pillarPosition = new Vector3(x * tileSize, pillarHeight, y * tileSize);
-                    if (gameEdgePrefabs.Length > 0 && gameEdgePrefabs[0] != null)
-                    {
-                        Instantiate(gameEdgePrefabs[0], pillarPosition, Quaternion.identity, transform);
-                    }
-                }
-            }
-        }
+        // Skaluj go tak, ¿eby mia³ szerokoœæ i d³ugoœæ ca³ej mapy plus border
+        // Wysokoœæ na pillarHeight
+        borderBlock.transform.localScale = new Vector3(totalWidthX, pillarHeight, totalWidthY);
+
+        // Ustaw pozycjê na œrodek ca³ego tego obszaru, ale na po³owê wysokoœci filarów
+        borderBlock.transform.position = new Vector3(
+            (tileCountX / 2f) * tileSize,
+            pillarHeight / 2f,
+            (tileCountY / 2f) * tileSize);
+
+        // Ustaw materia³ filarów
+        MeshRenderer mr = borderBlock.GetComponent<MeshRenderer>();
+        mr.material = pillarMaterial;
+
+        // Opcjonalnie usuñ collider jeœli niepotrzebny:
+        // Destroy(borderBlock.GetComponent<BoxCollider>());
     }
+
+
     /*private GameObject GenerateSingleTile(float tileSize, int x, int y, int heightLevel)
     {
         int prefabIndex = (x + y) % tilePrefabs.Length; // lub inny sposób wyboru
@@ -266,6 +314,8 @@ public class TileManager : MonoBehaviour
 
         return tileObject;
     }*/
+
+
     private void AddRandomObstacles(int number)
     {
         for (int i = 1; i < number - 1; i++)
@@ -344,26 +394,35 @@ public class TileManager : MonoBehaviour
 
                 if (isOuterEdge)
                 {
-                    // Ustal wysokoœæ na podstawie s¹siaduj¹cego kafelka w planszy (jeœli istnieje)
-                    int innerX = Mathf.Clamp(x, 0, tileCountX - 1);
-                    int innerY = Mathf.Clamp(y, 0, tileCountY - 1);
-                    float height = 6f;
+                    // Ustal wysokoœæ p³otu
+                    float fenceHeight = 6f;
+                    Vector3 fencePosition = new Vector3(x * tileSize, fenceHeight, y * tileSize);
 
-                    Vector3 position = new Vector3(x * tileSize, height, y * tileSize);
-
-                    // Wybierz losowy prefab p³otka
+                    // Stwórz p³ot
                     GameObject fencePrefab = fencePrefabs[UnityEngine.Random.Range(0, fencePrefabs.Length)];
-                    GameObject fence = Instantiate(fencePrefab, position, Quaternion.identity, transform);
+                    GameObject fence = Instantiate(fencePrefab, fencePosition, Quaternion.identity, transform);
 
-                    // Opcjonalne: obróæ w zale¿noœci od krawêdzi
+                    // Ustaw rotacjê
                     if (x == -1) fence.transform.rotation = Quaternion.Euler(0, 90, 0);
                     else if (x == tileCountX) fence.transform.rotation = Quaternion.Euler(0, -90, 0);
                     else if (y == -1) fence.transform.rotation = Quaternion.Euler(0, 0, 0);
                     else if (y == tileCountY) fence.transform.rotation = Quaternion.Euler(0, 180, 0);
+
+                    // === Dodaj filar pod p³ot ===
+                    float pillarHeight = fenceHeight; // od 0 do wysokoœci p³otu
+                    GameObject pillar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    pillar.transform.parent = fence.transform;
+                    pillar.transform.localScale = new Vector3(5f, 25f, 5f);
+                    pillar.transform.position = new Vector3(x * tileSize, pillarHeight / 2f, y * tileSize);
+                    pillar.GetComponent<MeshRenderer>().material = pillarMaterial;
+
+                    // Opcjonalnie usuñ collider, jeœli niepotrzebny
+                    Destroy(pillar.GetComponent<Collider>());
                 }
             }
         }
     }
+
     private bool RectanglesTooClose(int ax, int ay, int aw, int ah, int bx, int by, int bw, int bh, int minDistance)
     {
         int aLeft = ax - minDistance;

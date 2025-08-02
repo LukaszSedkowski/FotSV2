@@ -61,7 +61,7 @@ public class CameraController : MonoBehaviour
         }
     }
 
-    private void RotateCamera(float angle)
+    public void RotateCamera(float angle)
     {
         // Zmiana offsetu w zależności od kąta
         Quaternion rotation = Quaternion.Euler(0, angle, 0);

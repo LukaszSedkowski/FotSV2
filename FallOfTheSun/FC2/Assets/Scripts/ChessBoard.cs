@@ -49,7 +49,8 @@ public class ChessBoard : MonoBehaviour
     private float plateauHeightValue;
 
     public static ChessBoard Instance { get; private set; }
-
+    [Header("UI")]
+    [SerializeField] private HoverStatsUI hoverStatsUI;
     private void Start()
     {
         //Inicjalizacja managerów
@@ -117,7 +118,8 @@ public class ChessBoard : MonoBehaviour
         HandleMouseInput();
         HandleKeyboardShortcuts();
         HandleMousePathHighlight();
-
+        ShowHoverStats();
+        
     }
     void HandleMousePathHighlight()
     {
@@ -142,6 +144,30 @@ public class ChessBoard : MonoBehaviour
             }
         }
     }
+    private void ShowHoverStats()
+    {
+        Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
+        int tileMask = LayerMask.GetMask("Tile");
+
+        if (Physics.Raycast(ray, out RaycastHit hit, 100, tileMask))
+        {
+            Vector2Int tilePos = LookupTileIndex(hit.transform.gameObject);
+            ChessPieces piece = pieceManager.chessPieces[tilePos.x, tilePos.y];
+
+            if (piece != null
+                && piece.IsVisibleToPlayer()
+                && piece.team != turnManager.currentTeam
+                && piece.GetComponent<MeshRenderer>().enabled)
+            {
+                hoverStatsUI.Show(piece);
+                return;
+            }
+        }
+
+        hoverStatsUI.Hide();
+    }
+
+
 
     private void HandleMouseInput()
     {
@@ -182,6 +208,7 @@ public class ChessBoard : MonoBehaviour
             {
                 attackManager.AttackEnemyPiece(currentlyDragging, target,
                     tileManager.tileHeights, tileManager.obstacles, pieceManager.chessPieces);
+                CurrentPiecePanel.CurrentPiecesSetPanel(currentlyDragging);
                 turnManager.CheckGameOver();
                 return;
             }
@@ -189,6 +216,7 @@ public class ChessBoard : MonoBehaviour
             // Ruch
             if (currentlyDragging != null && currentlyDragging.team == turnManager.currentTeam)
             {
+
                 bool moved = MoveTo(currentlyDragging, pos.x, pos.y);
                 if (!moved)
                     currentlyDragging.transform.position = tileManager.GetTileCenter(
@@ -197,6 +225,7 @@ public class ChessBoard : MonoBehaviour
                 fogOfWarManager.UpdatePieceVisibility(pieceManager.chessPieces);
             }
         }
+
     }
 
     void HandleKeyboardShortcuts()
