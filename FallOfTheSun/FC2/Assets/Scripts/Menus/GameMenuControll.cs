@@ -133,4 +133,24 @@ public class GameMenuController : MonoBehaviour
         SceneManager.LoadScene("SampleScene");
     }
 
+    public void OnBackToMainMenu()
+    {
+        // Wyczyœæ dane gry
+        if (GameData.Instance != null)
+        {
+            GameData.Instance.teamColors.Clear();
+            GameData.Instance.selectedCharacters.Clear();
+            GameData.Instance.playerCharacters.Clear();
+            GameData.Instance.enemyCharacters.Clear();
+            GameData.Instance.isAIControlledTeams = null;
+        }
+
+        // UI: wy³¹cz obecne menu gry, w³¹cz main menu
+        Menus.Instance.gameMenu.SetActive(false);
+        Menus.Instance.mainMenu.SetActive(true);
+
+        // Prze³aduj scenê g³ównego menu
+        SceneManager.LoadScene("MainMenu");
+    }
+
 }
