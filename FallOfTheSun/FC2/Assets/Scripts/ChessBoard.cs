@@ -85,10 +85,25 @@ public class ChessBoard : MonoBehaviour
         fogOfWarManager.Init(tileManager);
         highlightManager.Init(tileManager, pieceManager, this);
 
-        int numberOfTeams = GameData.Instance.selectedCharacters.Count;
-        bool[] isAIControlled = GameData.Instance.isAIControlledTeams;
+        int numberOfTeams;
+        bool[] isAIControlled;
+
+        if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
+        {
+            // Kampania: 2 strony – gracz (0) i AI (1)
+            numberOfTeams = 2;
+            isAIControlled = new bool[] { false, true }; // gracz vs AI
+        }
+        else
+        {
+            // Arena: MultiTeam wg menu
+            numberOfTeams = GameData.Instance.selectedCharacters.Count;
+            isAIControlled = GameData.Instance.isAIControlledTeams;
+        }
 
         turnManager.Init(numberOfTeams, isAIControlled, pieceManager, CurrentPiecePanel, highlightManager, fogOfWarManager);
+
+
 
         // Wybór pionka z ID równym 1 na początku gry
         SelectPieceById(1, turnManager.currentTeam);

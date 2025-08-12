@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class PieceManager : MonoBehaviour
@@ -13,6 +13,20 @@ public class PieceManager : MonoBehaviour
         { ChessPieceType.Knight, 1f },
         { ChessPieceType.Werewolf, 1f },
         { ChessPieceType.Vampir, 1f }
+    };
+
+    private static readonly Vector2Int[] CornerOffsets = new Vector2Int[]
+    {
+        // mała siatka 4x4 przy rogu (wystarczy na 4 pionki, ale daję więcej “w zapasie”)
+        new Vector2Int(0,0),
+        new Vector2Int(1,0), new Vector2Int(0,1),
+        new Vector2Int(1,1), new Vector2Int(2,0),
+        new Vector2Int(0,2), new Vector2Int(2,1),
+        new Vector2Int(1,2), new Vector2Int(2,2),
+        new Vector2Int(3,0), new Vector2Int(0,3),
+        new Vector2Int(3,1), new Vector2Int(1,3),
+        new Vector2Int(3,2), new Vector2Int(2,3),
+        new Vector2Int(3,3)
     };
 
     public TileManager tileManager;
@@ -75,25 +89,95 @@ public class PieceManager : MonoBehaviour
     }
     private void SpawnMultiTeamPieces()
     {
-        int team = 0;
+        int width = TileManager.Tile_Count_X;
         int height = TileManager.Tile_Count_Y;
 
+        // Kotwice narożników: 0=BL, 1=TR, 2=BR, 3=TL
+        Vector2Int[] anchors = new Vector2Int[]
+        {
+        new Vector2Int(0, 0),                     // team 0: bottom-left
+        new Vector2Int(width - 1, height - 1),    // team 1: top-right
+        new Vector2Int(width - 1, 0),             // team 2: bottom-right
+        new Vector2Int(0, height - 1)             // team 3: top-left
+        };
+
+        // Kierunki “rozsuwania się” od kotwicy
+        Vector2Int[] signs = new Vector2Int[]
+        {
+        new Vector2Int(+1, +1),   // BL: rośnij X i Y
+        new Vector2Int(-1, -1),   // TR: malej X i Y
+        new Vector2Int(-1, +1),   // BR: malej X, rośnij Y
+        new Vector2Int(+1, -1)    // TL: rośnij X, malej Y
+        };
+
+        int team = 0;
         foreach (var pieces in GameData.Instance.selectedCharacters)
         {
-            int x = 0, pieceID = 1;
-            // wybierz wiersz zale�nie od teamu
-            int yStart = (team == 0) ? 0 : (height - 1);
+            int t = Mathf.Clamp(team, 0, 3); // zabezpieczenie do 4 rogów
+            Vector2Int anchor = anchors[t];
+            Vector2Int sign = signs[t];
+
+            int pieceID = 1;
 
             foreach (var type in pieces)
             {
-                chessPieces[x, yStart] = SpawnSinglePiece(type, team, pieceID++);
-                Debug.Log($"[PieceManager] Stworzony pionek {type} dla dru�yny {team} na pozycji ({x},{yStart})");
-                x++;
+                bool placed = false;
+
+                // próbujemy w obrębie siatki przy rogu
+                for (int i = 0; i < CornerOffsets.Length && !placed; i++)
+                {
+                    int px = anchor.x + sign.x * CornerOffsets[i].x;
+                    int py = anchor.y + sign.y * CornerOffsets[i].y;
+
+                    if (px < 0 || py < 0 || px >= width || py >= height)
+                        continue;
+                    if (tileManager.obstacles[px, py])
+                        continue;
+                    if (chessPieces[px, py] != null)
+                        continue;
+
+                    chessPieces[px, py] = SpawnSinglePiece(type, team, pieceID++);
+                    Debug.Log($"[PieceManager] {type} → team {team} @ corner cell ({px},{py})");
+                    placed = true;
+                }
+
+                // awaryjnie: jeśli wszystkie komórki przy rogu są zajęte, szukamy najbliższej wolnej
+                if (!placed)
+                {
+                    int bestX = -1, bestY = -1;
+                    int bestDist = int.MaxValue;
+
+                    for (int x = 0; x < width; x++)
+                    {
+                        for (int y = 0; y < height; y++)
+                        {
+                            if (chessPieces[x, y] == null && !tileManager.obstacles[x, y])
+                            {
+                                int dist = Mathf.Abs(x - anchor.x) + Mathf.Abs(y - anchor.y);
+                                if (dist < bestDist)
+                                {
+                                    bestDist = dist;
+                                    bestX = x; bestY = y;
+                                }
+                            }
+                        }
+                    }
+
+                    if (bestX >= 0)
+                    {
+                        chessPieces[bestX, bestY] = SpawnSinglePiece(type, team, pieceID++);
+                        Debug.LogWarning($"[PieceManager] {type} → team {team} (FALLBACK) @ ({bestX},{bestY})");
+                    }
+                    else
+                    {
+                        Debug.LogError($"[PieceManager] Brak miejsca na spawn dla team {team} – {type}");
+                    }
+                }
             }
+
             team++;
         }
     }
-
 
     private ChessPieces SpawnSinglePiece(ChessPieceType type, int team, int id)
     {
@@ -102,7 +186,7 @@ public class PieceManager : MonoBehaviour
 
         var mr = cp.GetComponent<MeshRenderer>();
 
-        // --- Bezpieczne pobranie materia�u ---
+        // --- Bezpieczne pobranie materiału ---
         Material baseMat;
         if (team < teamMaterials.Length)
         {
@@ -110,11 +194,11 @@ public class PieceManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning($"[PieceManager] Brak teamMaterials[{team}] (Length={teamMaterials.Length}), u�ywam teamMaterials[0].");
+            Debug.LogWarning($"[PieceManager] Brak teamMaterials[{team}] (Length={teamMaterials.Length}), używam teamMaterials[0].");
             baseMat = teamMaterials[0];
         }
 
-        // --- Utworzenie instancji materia�u, �eby nie modyfikowa� sharedMaterial ---
+        // --- Utworzenie instancji materiału, żeby nie modyfikować sharedMaterial ---
         Material instMat = new Material(baseMat);
 
         // --- Bezpieczne pobranie koloru ---
@@ -125,7 +209,7 @@ public class PieceManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning($"[PieceManager] Brak teamColors[{team}] (Count={GameData.Instance.teamColors.Count}), u�ywam White.");
+            Debug.LogWarning($"[PieceManager] Brak teamColors[{team}] (Count={GameData.Instance.teamColors.Count}), używam White.");
         }
 
         instMat.color = col;
@@ -157,7 +241,7 @@ public class PieceManager : MonoBehaviour
         }
     }
 
-    // Ustawia pionek tak, aby jego dolna kraw�d� (bounding box) styka�a si� z kafelkiem.
+    // Ustawia pionek tak, aby jego dolna krawędź (bounding box) stykała się z kafelkiem.
     public void PositionSinglePiece(int x, int y, bool force = false)
     {
         ChessPieces piece = chessPieces[x, y];
@@ -165,7 +249,7 @@ public class PieceManager : MonoBehaviour
         piece.currentY = y;
 
         float tileHeight = tileManager.tiles[x, y].transform.position.y;
-        // Ustaw tymczasowo pozycj�, aby bounding box zosta� obliczony w world space
+        // Ustaw tymczasowo pozycję, aby bounding box został obliczony w world space
         piece.transform.position = new Vector3(x * tileManager.tileSize, 0f, y * tileManager.tileSize);
 
         Renderer[] renderers = piece.GetComponentsInChildren<Renderer>();
