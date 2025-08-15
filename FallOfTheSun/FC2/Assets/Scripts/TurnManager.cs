@@ -207,10 +207,12 @@ public class TurnManager : MonoBehaviour
             if (TileManager.Instance.lightTiles.Contains(pos))
             {
                 piece.lightDarkness.ChangeLightDarkLevel(5); // światło wzrasta
+                piece.ChangeLightDarkHealth(5); // zdrowie światła/mroku wzrasta
             }
             else if (TileManager.Instance.darkTiles.Contains(pos))
             {
                 piece.lightDarkness.ChangeLightDarkLevel(-5); // mrok wzrasta
+                piece.ChangeLightDarkHealth(5); // zdrowie światła/mroku wzrasta
             }
         }
     }

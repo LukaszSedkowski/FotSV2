@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.ProBuilder.Shapes;
+using static UnityEngine.GraphicsBuffer;
 
 public enum ChessPieceType
 {
@@ -24,6 +26,8 @@ public class ChessPieces : MonoBehaviour
 
     public FogOfWarManager fogOfWarManager;
     public LightDarknessManager lightDarkness;
+    public PieceManager pieceManager;
+    public TurnManager turnManager;
     [Header("Active Abilities")]
     public List<Ability> abilities = new List<Ability>();
 
@@ -39,6 +43,8 @@ public class ChessPieces : MonoBehaviour
       public int maxMovementRange;  // Maksymalny zasięg ruchu
     public float health;
     public float maxHealth;
+    public float LDMaxHealth = 100;
+    public float LDHealth = 100;
     public float attack;
     public int attackRange;
     public int attackCost;
@@ -55,9 +61,13 @@ public class ChessPieces : MonoBehaviour
     private Vector3 desiredPosition;
     private Vector3 desiredScale;
 
+    
+
     private void Start()
     {
         lightDarkness = FindAnyObjectByType<LightDarknessManager>();
+        pieceManager = FindAnyObjectByType<PieceManager>();
+        turnManager = FindAnyObjectByType<TurnManager>();
     }
     // Metoda inicjalizacyjna
     public void Init(ChessPieceType type, int team, int id)
@@ -115,4 +125,24 @@ public class ChessPieces : MonoBehaviour
         strongStrikeActive = false;
         return true;
     }
+    public void ChangeLightDarkHealth(int value)
+    {
+        if (!(LDHealth <= 0 && value < 0) && !(LDHealth >= LDMaxHealth && value > 0))
+        {
+            LDHealth += value;
+            Debug.Log(LDHealth);
+        }
+        DestroyPiece();
+    }
+    public void DestroyPiece()
+    {
+        if (LDHealth <= 0)
+        {
+            Destroy(gameObject);
+            pieceManager.chessPieces[currentX, currentY] = null;
+            Debug.Log("Pionek przeciwnika został zniszczony.");
+            turnManager.ChangeTurn();
+        }
+    }
+    
 }

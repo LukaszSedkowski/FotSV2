@@ -24,10 +24,11 @@ public class Priestess : ChessPieces
             null,
             user =>
             {
-                var hunter = (Hunter)user;
-                hunter.health = Mathf.Min(hunter.health + hunter.healAmount, hunter.maxHealth);
+                var priestess = (Priestess)user;
+                priestess.health = Mathf.Min(priestess.health + priestess.healAmount, priestess.maxHealth);
                 lightDarkness.ChangeLightDarkLevel(-5);
-                Debug.Log($"{hunter.type} healed for {hunter.healAmount} HP.");
+                ChangeLightDarkHealth(-4);
+                Debug.Log($"{priestess.type} healed for {priestess.healAmount} HP.");
             }
         ));
 
@@ -39,6 +40,7 @@ public class Priestess : ChessPieces
             {
                 user.movementRange = user.maxMovementRange;
                 lightDarkness.ChangeLightDarkLevel(-5);
+                ChangeLightDarkHealth(-4);
                 Debug.Log($"{user.type} movement range reset to {user.maxMovementRange}.");
             }
         ));
@@ -48,10 +50,11 @@ public class Priestess : ChessPieces
             "Strong Strike",
             null,
             user => {
-                var hunter = (Hunter)user;
-                hunter.strongStrikeActive = true;
+                var priestess = (Priestess)user;
+                priestess.strongStrikeActive = true;
                 lightDarkness.ChangeLightDarkLevel(-5);
-                Debug.Log($"{hunter.type} empowered next attack by {hunter.extraDamage} damage.");
+                ChangeLightDarkHealth(-4);
+                Debug.Log($"{priestess.type} empowered next attack by {priestess.extraDamage} damage.");
             }
         ));
     }

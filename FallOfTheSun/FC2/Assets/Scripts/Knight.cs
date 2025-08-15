@@ -30,10 +30,11 @@ public class Knight : ChessPieces
             null,
             user =>
             {
-                var hunter = (Hunter)user;
-                hunter.health = Mathf.Min(hunter.health + hunter.healAmount, hunter.maxHealth);
+                var knight = (Knight)user;
+                knight.health = Mathf.Min(knight.health + knight.healAmount, knight.maxHealth);
                 lightDarkness.ChangeLightDarkLevel(-5);
-                Debug.Log($"{hunter.type} healed for {hunter.healAmount} HP.");
+                ChangeLightDarkHealth(-4);
+                Debug.Log($"{knight.type} healed for {knight.healAmount} HP.");
             }
         ));
 
@@ -45,6 +46,7 @@ public class Knight : ChessPieces
             {
                 user.movementRange = user.maxMovementRange;
                 lightDarkness.ChangeLightDarkLevel(-5);
+                ChangeLightDarkHealth(-4);
                 Debug.Log($"{user.type} movement range reset to {user.maxMovementRange}.");
             }
         ));
@@ -54,10 +56,11 @@ public class Knight : ChessPieces
             "Strong Strike",
             null,
             user => {
-                var hunter = (Hunter)user;
-                hunter.strongStrikeActive = true;
+                var knight = (Knight)user;
+                knight.strongStrikeActive = true;
                 lightDarkness.ChangeLightDarkLevel(-5);
-                Debug.Log($"{hunter.type} empowered next attack by {hunter.extraDamage} damage.");
+                ChangeLightDarkHealth(-4);
+                Debug.Log($"{knight.type} empowered next attack by {knight.extraDamage} damage.");
             }
         ));
     }

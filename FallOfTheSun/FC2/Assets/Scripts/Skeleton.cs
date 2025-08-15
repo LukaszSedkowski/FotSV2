@@ -27,6 +27,7 @@ public class Skeleton : ChessPieces
                 var ogre = (Ogre)user;
                 ogre.health = Mathf.Min(ogre.health + ogre.healAmount, ogre.maxHealth);
                 lightDarkness.ChangeLightDarkLevel(5);
+                ChangeLightDarkHealth(-4);
                 Debug.Log($"{ogre.type} healed for {ogre.healAmount} HP.");
             }
         ));
@@ -39,6 +40,7 @@ public class Skeleton : ChessPieces
             {
                 user.movementRange = user.maxMovementRange;
                 lightDarkness.ChangeLightDarkLevel(5);
+                ChangeLightDarkHealth(-4);
                 Debug.Log($"{user.type} movement range reset to {user.maxMovementRange}.");
             }
         ));
@@ -51,6 +53,7 @@ public class Skeleton : ChessPieces
                 var ogre = (Ogre)user;
                 ogre.strongStrikeActive = true;
                 lightDarkness.ChangeLightDarkLevel(5);
+                ChangeLightDarkHealth(-4);
                 Debug.Log($"{ogre.type} empowered next attack by {ogre.extraDamage} damage.");
             }
         ));

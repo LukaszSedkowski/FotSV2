@@ -48,6 +48,17 @@ public class ChessBoard : MonoBehaviour
     private int plateauStartX, plateauStartY, plateauWidth, plateauHeight;
     private float plateauHeightValue;
 
+    // --- AOE Targeting state ---
+    private bool isAreaTargeting = false;
+    private AreaAbility pendingAreaAbility = null;
+    private ChessPieces abilityUser = null;
+    private List<Vector2Int> tempHighlighted = new List<Vector2Int>();
+
+    private ITargetedAbility _activeTargeting = null;
+    private ChessPieces _abilityUser = null;
+    public AbilityContext GetAbilityContext() => new AbilityContext(this);
+    public bool IsTargetingActive => _activeTargeting != null;
+
     public static ChessBoard Instance { get; private set; }
     [Header("UI")]
     [SerializeField] private HoverStatsUI hoverStatsUI;
@@ -57,7 +68,7 @@ public class ChessBoard : MonoBehaviour
         tileManager = FindAnyObjectByType<TileManager>();
         pieceManager = FindAnyObjectByType<PieceManager>();
         highlightManager.Init(tileManager, pieceManager, this);
-        pieceManager = FindObjectOfType<PieceManager>();
+        pieceManager = FindAnyObjectByType<PieceManager>();
         highlightManager.Init(tileManager, pieceManager, this);
         fogOfWarManager = FindAnyObjectByType<FogOfWarManager>();
         highlightManager = FindAnyObjectByType<HighlightManager>();
@@ -139,6 +150,20 @@ public class ChessBoard : MonoBehaviour
     void HandleMousePathHighlight()
     {
         Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
+        if (_activeTargeting != null)
+        {
+            if (Physics.Raycast(ray, out RaycastHit infoo, 100, LayerMask.GetMask("Tile")))
+            {
+                Vector2Int hit = LookupTileIndex(infoo.transform.gameObject);
+                _activeTargeting.UpdatePreview(GetAbilityContext(), hit);
+            }
+            else
+            {
+                // kursor poza planszą/UI – oczyść preview, zostaw cyan
+                _activeTargeting.UpdatePreview(GetAbilityContext(), new Vector2Int(-999, -999));
+            }
+            return; // podczas celowania AoE nic innego nie malujemy
+        }
         if (Physics.Raycast(ray, out RaycastHit info, 100, LayerMask.GetMask("Tile")))
         {
             Vector2Int hitPosition = LookupTileIndex(info.transform.gameObject);
@@ -191,8 +216,29 @@ public class ChessBoard : MonoBehaviour
 
         if (!Input.GetMouseButtonDown(0))
             return;
-
         Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
+        if (_activeTargeting != null)
+        {
+            if (Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Escape))
+            {
+                _activeTargeting.Cancel(GetAbilityContext());
+                return;
+            }
+            if (Input.GetMouseButtonDown(0))
+            {
+                
+                if (Physics.Raycast(ray, out RaycastHit hitTilee, 100, LayerMask.GetMask("Tile")))
+                {
+                    Vector2Int pos = LookupTileIndex(hitTilee.transform.gameObject);
+                    _activeTargeting.Cast(GetAbilityContext(), pos);
+                }
+                else
+                {
+                    _activeTargeting.Cancel(GetAbilityContext());
+                }
+                return;
+            }
+        }
 
         // --- 1) Spróbuj wybrać pionek ---
         int pieceMask = LayerMask.GetMask("Piece");
@@ -671,6 +717,18 @@ private bool IsOnHideoutTile(ChessPieces piece)
 
         cp.transform.position = targetPosition;
         cp.isMoving = false;
+    }
+    public void BeginTargeting(ITargetedAbility ability, ChessPieces user)
+    {
+        _activeTargeting = ability;
+        _abilityUser = user;
+        _activeTargeting.StartTargeting(GetAbilityContext(), user);
+    }
+
+    public void OnAbilityTargetingFinished()
+    {
+        _activeTargeting = null;
+        _abilityUser = null;
     }
 }
 

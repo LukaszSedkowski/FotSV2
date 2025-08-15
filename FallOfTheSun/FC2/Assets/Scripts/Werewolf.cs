@@ -30,10 +30,11 @@ public class Werewolf : ChessPieces
             null,
             user =>
             {
-                var ogre = (Ogre)user;
-                ogre.health = Mathf.Min(ogre.health + ogre.healAmount, ogre.maxHealth);
+                var werewolf = (Werewolf)user;
+                werewolf.health = Mathf.Min(werewolf.health + werewolf.healAmount, werewolf.maxHealth);
                 lightDarkness.ChangeLightDarkLevel(5);
-                Debug.Log($"{ogre.type} healed for {ogre.healAmount} HP.");
+                ChangeLightDarkHealth(-4);
+                Debug.Log($"{werewolf.type} healed for {werewolf.healAmount} HP.");
             }
         ));
 
@@ -45,6 +46,7 @@ public class Werewolf : ChessPieces
             {
                 user.movementRange = user.maxMovementRange;
                 lightDarkness.ChangeLightDarkLevel(5);
+                ChangeLightDarkHealth(-4);
                 Debug.Log($"{user.type} movement range reset to {user.maxMovementRange}.");
             }
         ));
@@ -54,10 +56,11 @@ public class Werewolf : ChessPieces
             "Strong Strike",
             null,
             user => {
-                var ogre = (Ogre)user;
-                ogre.strongStrikeActive = true;
+                var werewolf = (Werewolf)user;
+                werewolf.strongStrikeActive = true;
                 lightDarkness.ChangeLightDarkLevel(5);
-                Debug.Log($"{ogre.type} empowered next attack by {ogre.extraDamage} damage.");
+                ChangeLightDarkHealth(-4);
+                Debug.Log($"{werewolf.type} empowered next attack by {werewolf.extraDamage} damage.");
             }
         ));
     }

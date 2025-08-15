@@ -8,10 +8,12 @@ public class TeamPanel : MonoBehaviour
 {
     public TextMeshProUGUI team;
     public Slider healthSlider;
+    public Slider LDHealthSlider;
     public TextMeshProUGUI type;
     public TextMeshProUGUI attackRange;
     public TextMeshProUGUI attack;
     public TextMeshProUGUI movmentRange;
+
 
     public void CurrentPiecesSetPanel(ChessPieces currentlyDragging)
     {
@@ -21,6 +23,8 @@ public class TeamPanel : MonoBehaviour
             team.text = currentlyDragging.team.ToString();
             healthSlider.maxValue = currentlyDragging.maxHealth;
             healthSlider.value = currentlyDragging.health;
+            LDHealthSlider.maxValue = currentlyDragging.LDMaxHealth;
+            LDHealthSlider.value = currentlyDragging.LDHealth;
             type.text = currentlyDragging.type.ToString();
             attack.text = currentlyDragging.attack.ToString();
             attackRange.text = currentlyDragging.attackRange.ToString();
