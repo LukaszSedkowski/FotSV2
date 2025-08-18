@@ -6,7 +6,7 @@ public class TooltipUI : MonoBehaviour
     public static TooltipUI Instance; // Singleton do łatwego wywoływania
     public GameObject panel;           // Panel tooltipa
     public TextMeshProUGUI textElement; // Tekst w tooltipie
-    public Vector2 offset = new Vector2(-200, 0); // Odległość od myszki (lewa strona)
+    public Vector2 offset = new Vector2(0, 150); // Odległość od myszki (lewa strona)
 
     private void Awake()
     {
