@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -7,6 +8,9 @@ public class OptionsMenuManager : MonoBehaviour
 {
     public static OptionsMenuManager Instance;
     public GameObject optionsMenuPrefab;
+
+    [Header("ESC disabled in these scenes")]
+    [SerializeField] private string[] disableEscInScenes = new string[] { "MainMenu" };
 
     private GameObject currentMenu;
     private bool isMenuOpen = false;
@@ -31,6 +35,10 @@ public class OptionsMenuManager : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
+            // ⛔ Nie reaguj na ESC w scenach z listy (np. MainMenu)
+            if (IsEscDisabledInThisScene())
+                return;
+
             if (!isMenuOpen) OpenMenu();
             else CloseMenu();
         }
@@ -161,5 +169,12 @@ public class OptionsMenuManager : MonoBehaviour
             globalCanvas.worldCamera = Camera.main;
         }
     }
-
+    private bool IsEscDisabledInThisScene()
+    {
+        string active = SceneManager.GetActiveScene().name;
+        foreach (var s in disableEscInScenes)
+            if (string.Equals(s, active, StringComparison.OrdinalIgnoreCase))
+                return true;
+        return false;
+    }
 }

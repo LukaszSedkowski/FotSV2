@@ -3714,6 +3714,11 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: -20, y: -20}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &552724346 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4293533745168129498, guid: 580cc0ba2b3bc8247b8ab5c1db4fced2, type: 3}
+  m_PrefabInstance: {fileID: 1220194599788956022}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &586165976
 GameObject:
   m_ObjectHideFlags: 0
@@ -5134,6 +5139,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 97370f81838e11b47a49568db71fcfa6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  unitSelectionPanel: {fileID: 552724346}
   setupPanel: {fileID: 70552356}
   playersText: {fileID: 1913328120}
   pawnsText: {fileID: 1598713522}
@@ -8126,6 +8132,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   optionsMenuPrefab: {fileID: 2827733395084196877, guid: d552832033c08b14395bea11b3d1e53c, type: 3}
+  disableEscInScenes:
+  - MainMenu
 --- !u!4 &1561696645
 Transform:
   m_ObjectHideFlags: 0
