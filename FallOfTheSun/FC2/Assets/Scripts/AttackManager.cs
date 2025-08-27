@@ -99,6 +99,26 @@ public class AttackManager : MonoBehaviour
                 // Usuniêcie pionka, jeœli zdrowie <= 0
                 if (target.health <= 0)
                 {
+                    // [Bestiary][DEBUG] podgl¹d
+                    Debug.Log($"[Bestiary][AttackManager] Kill check -> attackerTeam={attacker.team}, targetTeam={target.team}, targetType={target.type}");
+
+                    // Najpierw próbujemy przez BestiaryManager (bo ju¿ go masz)
+                    bool registered = false;
+                    if (BestiaryManager.Instance != null)
+                    {
+                        registered = BestiaryManager.Instance.RegisterKill(target.type, attacker.team, target.team);
+                        Debug.Log($"[Bestiary][AttackManager] RegisterKill via BestiaryManager -> {registered}");
+                    }
+                    else if (GameData.Instance != null)
+                    {
+                        // Fallback: stary forward przez GameData (gdyby BestiaryManager nie zd¹¿y³ powstaæ)
+                        registered = GameData.Instance.TryRegisterKill(target.type, attacker.team, target.team);
+                        Debug.Log($"[Bestiary][AttackManager] RegisterKill via GameData forward -> {registered}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[Bestiary][AttackManager] Both BestiaryManager and GameData are NULL – cannot register kill.");
+                    }
                     Destroy(target.gameObject);
                     chessPieces[target.currentX, target.currentY] = null;
                     Debug.Log("Pionek przeciwnika zosta³ zniszczony.");

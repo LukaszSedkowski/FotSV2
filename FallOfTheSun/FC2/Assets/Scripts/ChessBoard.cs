@@ -130,7 +130,52 @@ public class ChessBoard : MonoBehaviour
         highlightManager.highlightedTiles = new bool[TileManager.Tile_Count_X, TileManager.Tile_Count_Y];
 
         // Ustawienie kamery na wybrany pionek
-        Camera.main.GetComponent<CameraController>().SetTarget(pieceManager.chessPieces[0, 0].transform);
+        // ✅ bezpieczne ustawienie kamery na pionku
+        var cam = Camera.main != null ? Camera.main.GetComponent<CameraController>() : null;
+        if (cam == null)
+        {
+            Debug.LogError("[ChessBoard] Brak CameraController na głównej kamerze.");
+        }
+        else
+        {
+            Transform targetTr = null;
+
+            // 1) jeśli SelectPieceById(1, ...) już coś ustawił
+            if (currentlyDragging != null)
+            {
+                targetTr = currentlyDragging.transform;
+            }
+            else
+            {
+                // 2) znajdź pierwszy pionek bieżącej drużyny
+                for (int x = 0; x < TileManager.Tile_Count_X && targetTr == null; x++)
+                {
+                    for (int y = 0; y < TileManager.Tile_Count_Y; y++)
+                    {
+                        var p = pieceManager.chessPieces[x, y];
+                        if (p != null && p.team == turnManager.currentTeam)
+                        {
+                            targetTr = p.transform;
+                            break;
+                        }
+                    }
+                }
+
+                // 3) ostateczny fallback – jakby nic nie było (nie powinno się zdarzyć)
+                if (targetTr == null)
+                {
+                    foreach (var p in pieceManager.chessPieces)
+                    {
+                        if (p != null) { targetTr = p.transform; break; }
+                    }
+                }
+            }
+
+            if (targetTr != null)
+                cam.SetTarget(targetTr);
+            else
+                Debug.LogWarning("[ChessBoard] Nie znaleziono żadnego pionka do ustawienia kamery.");
+        }
     }
 
     private void Update()

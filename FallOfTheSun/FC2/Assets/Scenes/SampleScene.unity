@@ -174,6 +174,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fogOfWarManager: {fileID: 0}
   lightDarkness: {fileID: 0}
+  pieceManager: {fileID: 0}
+  turnManager: {fileID: 0}
   abilities: []
   isMoving: 0
   team: 0
@@ -1051,6 +1053,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fogOfWarManager: {fileID: 0}
   lightDarkness: {fileID: 0}
+  pieceManager: {fileID: 0}
+  turnManager: {fileID: 0}
   abilities: []
   isMoving: 0
   team: 0
@@ -2558,6 +2562,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fogOfWarManager: {fileID: 0}
   lightDarkness: {fileID: 0}
+  pieceManager: {fileID: 0}
+  turnManager: {fileID: 0}
   abilities: []
   isMoving: 0
   team: 0
@@ -3028,6 +3034,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fogOfWarManager: {fileID: 0}
   lightDarkness: {fileID: 0}
+  pieceManager: {fileID: 0}
+  turnManager: {fileID: 0}
   abilities: []
   isMoving: 0
   team: 0
@@ -3975,6 +3983,50 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1123335807}
   m_CullTransparentMesh: 1
+--- !u!1 &1158856289
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1158856291}
+  - component: {fileID: 1158856290}
+  m_Layer: 0
+  m_Name: _Bootstrap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1158856290
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1158856289}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6dc56bd70410ec54c9aa5a7feddcc9a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1158856291
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1158856289}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 338.8872, y: -274.8247, z: 80.131805}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1171364984
 GameObject:
   m_ObjectHideFlags: 0
@@ -6100,6 +6152,50 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &1451036764
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1451036766}
+  - component: {fileID: 1451036765}
+  m_Layer: 0
+  m_Name: _Bootstrap_GameData
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1451036765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1451036764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 178668867141f314c9c19d12866297ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1451036766
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1451036764}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 338.8872, y: -274.8247, z: 80.131805}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1548296243 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7256325826461453011, guid: 2d4f25edf8b09a84eb028382addf762f, type: 3}
@@ -6119,6 +6215,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fogOfWarManager: {fileID: 0}
   lightDarkness: {fileID: 0}
+  pieceManager: {fileID: 0}
+  turnManager: {fileID: 0}
   abilities: []
   isMoving: 0
   team: 0
@@ -6703,6 +6801,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fogOfWarManager: {fileID: 0}
   lightDarkness: {fileID: 0}
+  pieceManager: {fileID: 0}
+  turnManager: {fileID: 0}
   abilities: []
   isMoving: 0
   team: 0
@@ -9232,3 +9332,5 @@ SceneRoots:
   - {fileID: 1550900144}
   - {fileID: 806413120968424314}
   - {fileID: 1852137527}
+  - {fileID: 1158856291}
+  - {fileID: 1451036766}

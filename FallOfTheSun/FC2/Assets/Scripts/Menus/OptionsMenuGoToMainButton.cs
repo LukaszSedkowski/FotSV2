@@ -85,6 +85,7 @@ public class OptionsMenuGoToMainButton : MonoBehaviour
             gd.selectedCharacters?.Clear();
             gd.playerCharacters?.Clear();
             gd.enemyCharacters?.Clear();
+            GameData.Instance.ResetBestiary();
             gd.isAIControlledTeams = null;
             Object.Destroy(gd.gameObject);
         }

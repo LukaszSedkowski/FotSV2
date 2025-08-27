@@ -161,6 +161,7 @@ public class GameMenuController : MonoBehaviour
             GameData.Instance.selectedCharacters.Clear();
             GameData.Instance.playerCharacters.Clear();
             GameData.Instance.enemyCharacters.Clear();
+            GameData.Instance.ResetBestiary();
             GameData.Instance.isAIControlledTeams = null;
 
             // zniszcz DDOL, ¿eby nowa scena utworzy³a œwie¿¹ GameData w Awake
