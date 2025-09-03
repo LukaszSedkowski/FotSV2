@@ -63,8 +63,7 @@ public class ChessBoard : MonoBehaviour
     [Header("UI")]
     [SerializeField] private HoverStatsUI hoverStatsUI;
     private void Start()
-    {
-        //Inicjalizacja managerów
+    { //Inicjalizacja managerów 
         tileManager = FindAnyObjectByType<TileManager>();
         pieceManager = FindAnyObjectByType<PieceManager>();
         highlightManager.Init(tileManager, pieceManager, this);
@@ -73,50 +72,44 @@ public class ChessBoard : MonoBehaviour
         fogOfWarManager = FindAnyObjectByType<FogOfWarManager>();
         highlightManager = FindAnyObjectByType<HighlightManager>();
         turnManager = FindAnyObjectByType<TurnManager>();
-
         //fragment od tryby gry a raczej żeby się nie zbugowało nic 
-
         if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
         {
             List<ChessPieceType> playerCharacters = GameData.Instance.playerCharacters;
             List<ChessPieceType> enemyCharacters = GameData.Instance.enemyCharacters;
         }
-
         if (AIController.Instance == null)
         {
             GameObject aiObj = new GameObject("AIController");
             aiObj.AddComponent<AIController>();
         }
-
         pieceManager.SpawnAllPieces();
         pieceManager.PositionAllPieces();
+        var applier = FindAnyObjectByType<BestiaryBonusesApplier>();
+        if (applier == null) applier = gameObject.AddComponent<BestiaryBonusesApplier>();
+        applier.ApplyForTeam(0, pieceManager);
         Camera.main.GetComponent<CameraController>().FitCameraToBoard(TileManager.Tile_Count_X, TileManager.Tile_Count_Y, tileManager.tileSize);
-
-
         fogOfWarManager.Init(tileManager);
         highlightManager.Init(tileManager, pieceManager, this);
-
         int numberOfTeams;
         bool[] isAIControlled;
-
         if (GameData.Instance.CurrentGameMode == GameMode.SinglePlayer)
         {
-            // Kampania: 2 strony – gracz (0) i AI (1)
+            // Kampania: 2 strony – gracz (0) i AI (1) 
             numberOfTeams = 2;
-            isAIControlled = new bool[] { false, true }; // gracz vs AI
+            isAIControlled = new bool[] { false, true };
+            // gracz vs AI 
         }
         else
         {
-            // Arena: MultiTeam wg menu
+            // Arena: MultiTeam wg menu 
             numberOfTeams = GameData.Instance.selectedCharacters.Count;
             isAIControlled = GameData.Instance.isAIControlledTeams;
         }
 
         turnManager.Init(numberOfTeams, isAIControlled, pieceManager, CurrentPiecePanel, highlightManager, fogOfWarManager);
 
-
-
-        // Wybór pionka z ID równym 1 na początku gry
+        // Wybór pionka z ID równym 1 na początku gry 
         SelectPieceById(1, turnManager.currentTeam);
 
         if (currentlyDragging != null)
@@ -128,9 +121,8 @@ public class ChessBoard : MonoBehaviour
 
         highlightManager.HighlightPossibleMoves(currentlyDragging);
         highlightManager.highlightedTiles = new bool[TileManager.Tile_Count_X, TileManager.Tile_Count_Y];
-
-        // Ustawienie kamery na wybrany pionek
-        // ✅ bezpieczne ustawienie kamery na pionku
+        // Ustawienie kamery na wybrany pionek 
+        // --- Ustaw kamerę NA REALNYM PIONKU (bezpiecznie) ---
         var cam = Camera.main != null ? Camera.main.GetComponent<CameraController>() : null;
         if (cam == null)
         {
@@ -140,14 +132,14 @@ public class ChessBoard : MonoBehaviour
         {
             Transform targetTr = null;
 
-            // 1) jeśli SelectPieceById(1, ...) już coś ustawił
+            // 1) jeśli SelectPieceById wybrał pionek, użyj go
             if (currentlyDragging != null)
             {
                 targetTr = currentlyDragging.transform;
             }
             else
             {
-                // 2) znajdź pierwszy pionek bieżącej drużyny
+                // 2) fallback – pierwszy pionek bieżącej drużyny
                 for (int x = 0; x < TileManager.Tile_Count_X && targetTr == null; x++)
                 {
                     for (int y = 0; y < TileManager.Tile_Count_Y; y++)
@@ -160,19 +152,10 @@ public class ChessBoard : MonoBehaviour
                         }
                     }
                 }
-
-                // 3) ostateczny fallback – jakby nic nie było (nie powinno się zdarzyć)
-                if (targetTr == null)
-                {
-                    foreach (var p in pieceManager.chessPieces)
-                    {
-                        if (p != null) { targetTr = p.transform; break; }
-                    }
-                }
             }
 
             if (targetTr != null)
-                cam.SetTarget(targetTr);
+                cam.SetTarget(targetTr);    // ← kamera zawsze „siada” na pionku
             else
                 Debug.LogWarning("[ChessBoard] Nie znaleziono żadnego pionka do ustawienia kamery.");
         }

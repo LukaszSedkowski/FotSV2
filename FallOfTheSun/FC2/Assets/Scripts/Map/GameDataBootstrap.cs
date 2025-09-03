@@ -7,13 +7,12 @@ public class GameDataBootstrap : MonoBehaviour
         if (GameData.Instance == null)
         {
             var go = new GameObject("GameData");
-            go.AddComponent<GameData>();
-            DontDestroyOnLoad(go);
-            Debug.Log("[Bestiary][Bootstrap] Created GameData singleton.");
+            go.AddComponent<GameData>(); // Awake -> DontDestroyOnLoad
+            Debug.Log("[Bootstrap] GameData created.");
         }
         else
         {
-            Debug.Log("[Bestiary][Bootstrap] GameData already exists.");
+            Debug.Log("[Bootstrap] GameData already exists.");
         }
     }
 }

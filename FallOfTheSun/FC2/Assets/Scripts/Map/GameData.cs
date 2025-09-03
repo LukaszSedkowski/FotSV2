@@ -30,16 +30,23 @@ public class GameData : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            GameData.Instance.CurrentGameMode = GameMode.SinglePlayer;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
+            return;
         }
+
+        Instance = this;
+
+        // ⬇️ KLUCZ: przenieś na root zanim zrobisz DontDestroyOnLoad
+        if (transform.parent != null)
+            transform.SetParent(null);
+
+        DontDestroyOnLoad(gameObject);
+
+        // domyślka, gdyby nic nie ustawiło
+        if (CurrentGameMode == 0)
+            CurrentGameMode = GameMode.SinglePlayer;
     }
 
     /// <summary>
