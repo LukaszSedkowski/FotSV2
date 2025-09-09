@@ -19,20 +19,26 @@ public class Dog : ChessPieces
         // Usuñ stare umiejêtnoœci
         abilities.Clear();
 
-        // 1) Leczenie
-        abilities.Add(new Ability(
-            "Heal",
-            null,
-            user =>
-            {
-                var dog = (Dog)user;
-                dog.health = Mathf.Min(dog.health + dog.healAmount, dog.maxHealth);
-                lightDarkness.ChangeLightDarkLevel(-5);
-                ChangeLightDarkHealth(-4);
+        //Kula leczenia
+        var howl = new HealingAreaAbility("Howl of Relief", null, radius: 2, castRange: 6, heal: 25f)
+        {
+            movementCost = 5,
+            ldLevelCost = -5,
+            ldHealthCost = -4,
+            affectAllies = true,
+            includeSelf = true,
+            healFalloff = true
+        };
 
-                Debug.Log($"{dog.type} healed for {dog.healAmount} HP.");
-            }
-        ));
+        // W³¹czenie trybu celowania po klikniêciu w ikonê/slot
+        howl.ExecuteAction = user =>
+        {
+            var board = Object.FindAnyObjectByType<ChessBoard>();
+            if (board == null) { Debug.LogError("[AoE-Heal] ChessBoard not found"); return; }
+            board.BeginTargeting(howl, user);
+        };
+
+        abilities.Add(howl);
 
         // 2) Regeneracja ruchu
         abilities.Add(new Ability(
