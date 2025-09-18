@@ -130,6 +130,7 @@ public class TurnManager : MonoBehaviour
 
             if (playerHasPieces)
             {
+                GameData.Instance.AdvanceDay(1); // zawsze +1 dzień po walce
                 StartCoroutine(LoadScene("Map")); // Gracz wygrał → przejście do Mapy
             }
             else

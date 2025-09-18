@@ -1,16 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.EventSystems; 
-using UnityEngine.SceneManagement; // do zmiany sceny
 using System.Linq;
-
-
-
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class PlayerMovement : MonoBehaviour
 {
+    [Header("Movement")]
     public float speed = 5f;
     private float minSpeed = 1f;
     private float maxSpeed = 10f;
@@ -18,185 +16,213 @@ public class PlayerMovement : MonoBehaviour
     private Queue<Waypoint> pathQueue = new Queue<Waypoint>();
     private bool isMoving = false;
     private bool isFrozen = false;
-    private Waypoint currentWaypoint;
-    private Waypoint selectedWaypoint; // Przechowuje wybrany waypoint
 
+    private Waypoint currentWaypoint;
+    private Waypoint selectedWaypoint; // Wybrany waypoint
+
+    [Header("UI")]
     public Text dayText;
-    private int dayCount = 0;
+    public GameObject movePanel;      // Panel z potwierdzeniem ruchu
+    public Button moveButton;         // Przycisk "Idź"
+    public GameObject CheckPanel;     // Panel po dotarciu (walka / akcja)
+    public Button sceneChangeButton;  // Przycisk przejścia do walki
+    public Button infoButton;         // Przycisk "info" o wrogach
+
+    [Header("Scene names")]
+    public string Map = "SampleScene"; // Nazwa sceny walki (ty zostawiłeś "SampleScene")
+
+    [Header("Debug/Flow")]
+    public DialogueManager dialogueManager;
+
+    [Header("Selection")]
+    public Waypoint startPoint;
+
+    // Timer "dnia" na mapie
     private float timeMoving = 0f;
 
-    public Waypoint startPoint;
-    public GameObject movePanel; // Panel UI
-    public Button moveButton; // Przycisk do potwierdzenia ruchu
-
-    public GameObject CheckPanel;
-    public Button sceneChangeButton; // przypisz w Inspectorze
-    public string Map = "SampleScene"; // podaj nazwę sceny z Build
-
+    // Losowy wybór postaci gracza (tymczasowo)
     private List<ChessPieceType> selectedCharacters;
+
+    // UI z informacją o wrogach (opcjonalnie)
     public Text enemyInfoText;
     public Text autoEnemyInfoText;
-public Button infoButton;
 
-public DialogueManager dialogueManager;
-
-void Start()
-{
-selectedCharacters = GetRandomCharacters();
-foreach (var character in selectedCharacters)
-{
-    Debug.Log("Wylosowano postać: " + character);
-}
-    if (startPoint != null)
+    private void Start()
     {
-        currentWaypoint = startPoint;
-        transform.position = startPoint.transform.position;
-    }
-    else
-    {
-        currentWaypoint = FindClosestWaypoint();
-        transform.position = currentWaypoint.transform.position;
-    }
+        // Losujemy 4 postaci gracza (tymczasowo)
+        selectedCharacters = GetRandomCharacters();
 
-    Camera mainCamera = Camera.main;
-    movePanel.SetActive(false);
-    CheckPanel.SetActive(false); // Ukrywamy panel na start
-    moveButton.onClick.AddListener(OnMoveConfirmed); // Podpinamy metodę do przycisku
-    UpdateDayUI();
+        foreach (var character in selectedCharacters)
+            Debug.Log("Wylosowano postać: " + character);
 
-    sceneChangeButton.gameObject.SetActive(false);
-    sceneChangeButton.onClick.AddListener(ChangeScene);
-    infoButton.onClick.AddListener(ShowEnemiesAtSelectedWaypoint);
-
-    // Przesunięcie aktywacji waypointów o jeden dzień
-    if (dayCount > 0)
-    {
-        ActivateRandomWaypoints(2, 3); // Wybierz losowo 2 waypointy na 3 dni
-    }
-StartCoroutine(DelayedDialogueStart());
-
-}
-
-  private IEnumerator DelayedDialogueStart()
-{
-    yield return null; // odczekaj 1 klatkę (frame)
-    dialogueManager.StartDialogueByName("a");
-}  
-
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.Equals))
+        // Początkowe ustawienie pozycji na starcie
+        if (startPoint != null)
         {
-            speed = Mathf.Clamp(speed + 1f, minSpeed, maxSpeed);
-        }
-        if (Input.GetKeyDown(KeyCode.Minus))
-        {
-            speed = Mathf.Clamp(speed - 1f, minSpeed, maxSpeed);
-        }
-    if (Input.GetKeyDown(KeyCode.Q))
-    {
-        if (dialogueManager != null)
-        {
-            dialogueManager.NextLine();
-        }
-    }
-            if (Input.GetMouseButtonDown(1)) 
-        {
-        if (dialogueManager != null)
-        {
-            dialogueManager.NextLine();
-        }    }
-
-
-    if (Input.GetMouseButtonDown(0)) 
-    {
-        // Sprawdzamy, czy myszka jest nad UI - jeśli tak, ignorujemy kliknięcie
-        if (EventSystem.current.IsPointerOverGameObject())
-            return;
-
-        Waypoint target = FindClosestWaypoint();
-        
-        if (target != null && target != currentWaypoint)
-        {
-            selectedWaypoint = target;
-            movePanel.SetActive(true); // Pokazujemy panel
+            currentWaypoint = startPoint;
+            transform.position = startPoint.transform.position;
         }
         else
         {
-            movePanel.SetActive(false); // Ukrywamy panel, jeśli kliknięto poza waypointem
+            currentWaypoint = FindClosestWaypoint();
+            if (currentWaypoint != null)
+                transform.position = currentWaypoint.transform.position;
+        }
+
+        // UI: bezpieczne podpięcie
+        if (movePanel != null) movePanel.SetActive(false);
+        if (CheckPanel != null) CheckPanel.SetActive(false);
+
+        if (moveButton != null) moveButton.onClick.AddListener(OnMoveConfirmed);
+
+        if (sceneChangeButton != null)
+        {
+            sceneChangeButton.gameObject.SetActive(false);
+            sceneChangeButton.onClick.AddListener(ChangeScene);
+        }
+
+        if (infoButton != null)
+            infoButton.onClick.AddListener(ShowEnemiesAtSelectedWaypoint);
+
+        // Start dialogu (opcjonalnie)
+        StartCoroutine(DelayedDialogueStart());
+
+        // Ustaw UI dnia (globalny)
+        UpdateDayUI();
+
+        // Jeśli wróciliśmy właśnie z walki i day++ już został wykonany — przerób "nowy dzień"
+        if (GameData.Instance != null && GameData.Instance.lastBattleJustEnded)
+        {
+            GameData.Instance.lastBattleJustEnded = false;
+            OnNewDay(); // tick waypointów + losowanie + UI
         }
     }
 
+    private IEnumerator DelayedDialogueStart()
+    {
+        yield return null; // odczekaj 1 frame
+        if (dialogueManager != null)
+            dialogueManager.StartDialogueByName("a");
+    }
 
+    private void Update()
+    {
+        // Debug speed
+        if (Input.GetKeyDown(KeyCode.Equals))
+            speed = Mathf.Clamp(speed + 1f, minSpeed, maxSpeed);
+
+        if (Input.GetKeyDown(KeyCode.Minus))
+            speed = Mathf.Clamp(speed - 1f, minSpeed, maxSpeed);
+
+        // Dialog przewijanie
+        if (Input.GetKeyDown(KeyCode.Q) || Input.GetMouseButtonDown(1))
+        {
+            if (dialogueManager != null)
+                dialogueManager.NextLine();
+        }
+
+        // LPM – wybór celu ruchu (chyba że klik na UI)
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (!EventSystem.current || !EventSystem.current.IsPointerOverGameObject())
+            {
+                Waypoint target = FindClosestWaypoint();
+
+                if (target != null && target != currentWaypoint)
+                {
+                    selectedWaypoint = target;
+                    if (movePanel != null) movePanel.SetActive(true); // pokaż panel potwierdzenia
+                }
+                else
+                {
+                    if (movePanel != null) movePanel.SetActive(false);
+                }
+            }
+        }
+
+        // Spacja – pauza/ruszanie
         if (Input.GetKeyDown(KeyCode.Space))
         {
             isFrozen = !isFrozen;
             isMoving = !isFrozen;
         }
 
+        // Ruch po kolejce
         if (isMoving && pathQueue.Count > 0)
-        {
             MoveToNextWaypoint();
-        }
 
+        // "Zegar" dnia – liczy tylko gdy poruszamy się
         if (isMoving)
         {
             timeMoving += Time.deltaTime;
             if (timeMoving >= 5f)
             {
-                dayCount++;
                 timeMoving = 0f;
-                UpdateDayUI();
+
+                if (GameData.Instance != null)
+                {
+                    GameData.Instance.AdvanceDay(1);         // +1 globalny dzień
+                    GameData.Instance.lastBattleJustEnded = false; // to nie powrót z walki
+                }
+
+                OnNewDay(); // tick waypointów + losowanie + UI
             }
         }
-        if (isMoving && CheckPanel.activeSelf)
+
+        // Jeśli w trakcie ruchu był otwarty panel – schowaj go
+        if (isMoving && CheckPanel != null && CheckPanel.activeSelf)
+            CheckPanel.SetActive(false);
+    }
+
+    // === Nowy "pipeline" nowego dnia ===
+    private void OnNewDay()
+    {
+        // 1) Decrementy/sprzątanie na waypointach
+        Waypoint[] waypoints = FindObjectsOfType<Waypoint>();
+        foreach (Waypoint wp in waypoints)
+            wp.UpdateDay();
+
+        // 2) Wylosuj kilka waypointów na 1 dzień (dopasuj parametry pod design)
+        ActivateRandomWaypoints(2, 1);
+
+        // 3) UI
+        UpdateDayUI();
+    }
+
+    // === UI dnia: globalny dzień z GameData ===
+    private void UpdateDayUI()
+    {
+        if (dayText != null)
+            dayText.text = "Dzień: " + (GameData.Instance != null ? GameData.Instance.currentDay.ToString() : "0");
+    }
+
+    // === Właściwe przejście do sceny walki ===
+    private void ChangeScene()
+    {
+        if (selectedWaypoint == null)
         {
-        CheckPanel.SetActive(false);
+            Debug.LogError("Nie wybrano waypointa!");
+            return;
         }
-    }
-    public List<ChessPieceType> GetRandomCharacters(int count = 4)
-{
-    // Pobieramy wszystkie wartości enum poza 'None'
-    List<ChessPieceType> allCharacters = System.Enum.GetValues(typeof(ChessPieceType))
-        .Cast<ChessPieceType>()
-        .Where(t => t != ChessPieceType.None)
-        .ToList();
 
-    // Mieszamy listę
-    System.Random rng = new System.Random();
-    allCharacters = allCharacters.OrderBy(x => rng.Next()).ToList();
+        if (GameData.Instance == null)
+        {
+            Debug.LogError("GameData.Instance jest null! Upewnij się, że obiekt GameData istnieje w scenie.");
+            return;
+        }
 
-    // Zwracamy pierwsze 'count' elementów
-    return allCharacters.Take(count).ToList();
-}
+        GameData.Instance.playerCharacters = selectedCharacters;
+        GameData.Instance.enemyCharacters = currentWaypoint.enemyCharacters;
 
-void ChangeScene()
-{
-    if (selectedWaypoint == null)
-    {
-        Debug.LogError("Nie wybrano waypointa!");
-        return;
+        Debug.Log("Zmiana sceny na: " + Map);
+        SceneManager.LoadScene("SampleScene"); // jeśli chcesz użyć pola Map – podmień tutaj na Map
     }
 
-    if (GameData.Instance == null)
-    {
-        Debug.LogError("GameData.Instance jest null! Upewnij się, że obiekt GameData istnieje w scenie.");
-        return;
-    }
-
-    GameData.Instance.playerCharacters = selectedCharacters;
-    GameData.Instance.enemyCharacters = currentWaypoint.enemyCharacters;
-
-    Debug.Log("Zmiana sceny na: " + Map);
-    SceneManager.LoadScene("SampleScene");
-}
-
-
-    void OnMoveConfirmed()
+    // === Potwierdzenie ruchu ===
+    private void OnMoveConfirmed()
     {
         if (selectedWaypoint == null) return;
 
-        movePanel.SetActive(false); // Ukrywamy panel
+        if (movePanel != null) movePanel.SetActive(false);
 
         Waypoint start = pathQueue.Count > 0 ? pathQueue.Peek() : currentWaypoint;
         pathQueue.Clear();
@@ -205,107 +231,83 @@ void ChangeScene()
         if (path.Count > 0)
         {
             foreach (var wp in path)
-            {
                 pathQueue.Enqueue(wp);
-            }
+
             isMoving = true;
         }
     }
 
-void MoveToNextWaypoint()
-{
-    if (pathQueue.Count == 0) return;
-
-    Waypoint targetWaypoint = pathQueue.Peek();
-    transform.position = Vector3.MoveTowards(transform.position, targetWaypoint.transform.position, speed * Time.deltaTime);
-
-    if (Vector3.Distance(transform.position, targetWaypoint.transform.position) < 0.1f)
+    // === Ruch bohatera pomiędzy waypointami ===
+    private void MoveToNextWaypoint()
     {
-        pathQueue.Dequeue();
-        if (pathQueue.Count == 0)
+        if (pathQueue.Count == 0) return;
+
+        Waypoint targetWaypoint = pathQueue.Peek();
+        transform.position = Vector3.MoveTowards(transform.position, targetWaypoint.transform.position, speed * Time.deltaTime);
+
+        if (Vector3.Distance(transform.position, targetWaypoint.transform.position) < 0.1f)
         {
-            isMoving = false;
-            currentWaypoint = targetWaypoint;
-
-            // Pokazujemy przycisk po dotarciu do celu
-            sceneChangeButton.gameObject.SetActive(true);
-
-            // Pokaż panel tylko jeśli waypoint jest aktywowany
-            if (currentWaypoint.isActivated)
+            pathQueue.Dequeue();
+            if (pathQueue.Count == 0)
             {
-                CheckPanel.SetActive(true);
-                Debug.Log("CheckPanel shown at: " + currentWaypoint.name); // Debugowanie
-                
+                isMoving = false;
+                currentWaypoint = targetWaypoint;
+
+                // Pokaż przycisk do walki
+                if (sceneChangeButton != null)
+                    sceneChangeButton.gameObject.SetActive(true);
+
+                // Jeśli waypoint aktywny – pokaż panel
+                if (currentWaypoint.isActivated && CheckPanel != null)
+                {
+                    CheckPanel.SetActive(true);
+                    Debug.Log("CheckPanel shown at: " + currentWaypoint.name);
+                }
+
+                ShowEnemiesAutoAtWaypoint(currentWaypoint);
             }
-            ShowEnemiesAutoAtWaypoint(currentWaypoint);
         }
     }
-}
 
-
-
-void UpdateDayUI()
-{
-    dayText.text = "Dzień: " + dayCount.ToString();
-
-    Waypoint[] waypoints = FindObjectsOfType<Waypoint>();
-    foreach (Waypoint wp in waypoints)
+    // === Losowanie waypointów do aktywacji ===
+    private void ActivateRandomWaypoints(int count, int days)
     {
-        wp.UpdateDay();
-    }
-
-    // Losowanie waypointów zaczyna się od 1 dnia, więc sprawdzamy, czy dayCount > 0
-    if (dayCount > 0 && dayCount % 1 == 0) // Co 5 dni losujemy nowe waypointy
-    {
-        ActivateRandomWaypoints(2, 1); // Wybierz losowo 2 waypointy na 1 dni
-    }
-}
-
-
-void ActivateRandomWaypoints(int count, int days)
-{
-    Waypoint[] waypoints = FindObjectsOfType<Waypoint>();
-
-    if (waypoints.Length == 0)
-    {
-        Debug.LogError("Brak punktów na mapie!");
-        return;
-    }
-
-    List<Waypoint> shuffledWaypoints = new List<Waypoint>(waypoints);
-    System.Random rng = new System.Random();
-
-    // Tasujemy listę waypointów
-    for (int i = 0; i < shuffledWaypoints.Count; i++)
-    {
-        int randomIndex = rng.Next(i, shuffledWaypoints.Count);
-        Waypoint temp = shuffledWaypoints[i];
-        shuffledWaypoints[i] = shuffledWaypoints[randomIndex];
-        shuffledWaypoints[randomIndex] = temp;
-    }
-
-    // Wybieramy pierwsze 'count' waypointów
-    for (int i = 0; i < Mathf.Min(count, shuffledWaypoints.Count); i++)
-    {
-        if (shuffledWaypoints[i] != null)
+        Waypoint[] waypoints = FindObjectsOfType<Waypoint>();
+        if (waypoints.Length == 0)
         {
-            shuffledWaypoints[i].ActivateSpecialColor(days);
-            shuffledWaypoints[i].isActivated = true;
-            shuffledWaypoints[i].AssignRandomEnemies(3); // Dodaj 3 losowych przeciwników
+            Debug.LogError("Brak punktów na mapie!");
+            return;
         }
-        else
+
+        List<Waypoint> shuffled = waypoints.ToList();
+        System.Random rng = new System.Random();
+
+        for (int i = 0; i < shuffled.Count; i++)
         {
-            Debug.LogError("Waypoint " + i + " jest null!");
+            int r = rng.Next(i, shuffled.Count);
+            (shuffled[i], shuffled[r]) = (shuffled[r], shuffled[i]);
+        }
+
+        for (int i = 0; i < Mathf.Min(count, shuffled.Count); i++)
+        {
+            if (shuffled[i] != null)
+            {
+                shuffled[i].ActivateSpecialColor(days);
+                shuffled[i].isActivated = true;
+                shuffled[i].AssignRandomEnemies(3);
+            }
+            else
+            {
+                Debug.LogError("Wylosowany waypoint jest null!");
+            }
         }
     }
-}
 
-
-
-
-
-    Waypoint FindClosestWaypoint()
+    // === Najbliższy waypoint pod kursorem ===
+    private Waypoint FindClosestWaypoint()
     {
+        if (Camera.main == null) return null;
+
         Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePos.z = 0;
 
@@ -327,7 +329,8 @@ void ActivateRandomWaypoints(int count, int days)
         return closest != null && minDist <= clickRange ? closest : null;
     }
 
-    List<Waypoint> FindPathAStar(Waypoint start, Waypoint goal)
+    // === A* po grafie waypointów ===
+    private List<Waypoint> FindPathAStar(Waypoint start, Waypoint goal)
     {
         Dictionary<Waypoint, Waypoint> cameFrom = new Dictionary<Waypoint, Waypoint>();
         Dictionary<Waypoint, float> costSoFar = new Dictionary<Waypoint, float>();
@@ -340,7 +343,6 @@ void ActivateRandomWaypoints(int count, int days)
         while (frontier.Count > 0)
         {
             Waypoint current = frontier.Dequeue();
-
             if (current == goal) break;
 
             foreach (Waypoint neighbor in current.neighbors)
@@ -369,65 +371,71 @@ void ActivateRandomWaypoints(int count, int days)
         return path;
     }
 
-    float Heuristic(Waypoint a, Waypoint b)
+    private float Heuristic(Waypoint a, Waypoint b)
     {
         return Vector3.Distance(a.transform.position, b.transform.position);
     }
 
-
-
-public void ShowEnemiesAtSelectedWaypoint()
-{
-    if (selectedWaypoint != null)
+    // === UI wrogów ===
+    public void ShowEnemiesAtSelectedWaypoint()
     {
-        if (selectedWaypoint.enemyCharacters.Count > 0)
+        if (enemyInfoText == null) return;
+
+        if (selectedWaypoint != null)
         {
-            // Złącz wszystkie nazwy wrogów w jeden string oddzielony przecinkami
-            string enemiesLine = string.Join(", ", selectedWaypoint.enemyCharacters.Select(e => e.ToString()));
-
-            string info = "Wrogowie: " + enemiesLine;
-
-            Debug.Log("Wrogowie na punkcie " + selectedWaypoint.name + ": " + enemiesLine);
-
-            enemyInfoText.text = info;  // Ustawiamy tekst UI
+            if (selectedWaypoint.enemyCharacters.Count > 0)
+            {
+                string enemiesLine = string.Join(", ", selectedWaypoint.enemyCharacters.Select(e => e.ToString()));
+                string info = "Wrogowie: " + enemiesLine;
+                Debug.Log("Wrogowie na punkcie " + selectedWaypoint.name + ": " + enemiesLine);
+                enemyInfoText.text = info;
+            }
+            else
+            {
+                string msg = "Brak wrogów na punkcie: " + selectedWaypoint.name;
+                enemyInfoText.text = msg;
+                Debug.Log(msg);
+            }
         }
         else
         {
-            string noEnemiesMsg = "Brak wrogów na punkcie: " + selectedWaypoint.name;
-            enemyInfoText.text = noEnemiesMsg;
-            Debug.Log(noEnemiesMsg);
+            string msg = "Nie wybrano żadnego punktu.";
+            enemyInfoText.text = msg;
+            Debug.Log(msg);
         }
     }
-    else
+
+    public void ShowEnemiesAutoAtWaypoint(Waypoint waypoint)
     {
-        string noSelectionMsg = "Nie wybrano żadnego punktu.";
-        enemyInfoText.text = noSelectionMsg;
-        Debug.Log(noSelectionMsg);
+        if (autoEnemyInfoText == null) return;
+
+        if (waypoint != null)
+        {
+            if (waypoint.enemyCharacters.Count > 0)
+            {
+                string enemiesLine = string.Join("\n- ", waypoint.enemyCharacters.Select(e => e.ToString()));
+                string info = "Wrogowie:\n- " + enemiesLine;
+                autoEnemyInfoText.text = info;
+                Debug.Log("Auto info o wrogach na punkcie " + waypoint.name + ":\n" + info);
+            }
+            else
+            {
+                string msg = "Brak przeciwników na punkcie: " + waypoint.name;
+                autoEnemyInfoText.text = msg;
+            }
+        }
     }
-}
-public void ShowEnemiesAutoAtWaypoint(Waypoint waypoint)
-{
-    if (waypoint != null)
+
+    // === Utility ===
+    public List<ChessPieceType> GetRandomCharacters(int count = 4)
     {
-        if (waypoint.enemyCharacters.Count > 0)
-        {
-            // Tworzymy tekst, każdy wróg w nowej linii z myślnikiem
-            string enemiesLine = string.Join("\n- ", waypoint.enemyCharacters.Select(e => e.ToString()));
-            string info = "Wrogowie:\n- " + enemiesLine;
+        List<ChessPieceType> all = System.Enum.GetValues(typeof(ChessPieceType))
+            .Cast<ChessPieceType>()
+            .Where(t => t != ChessPieceType.None)
+            .ToList();
 
-            autoEnemyInfoText.text = info;
-            Debug.Log("Auto info o wrogach na punkcie " + waypoint.name + ":\n" + info);
-        }
-        else
-        {
-            string noEnemiesMsg = "Brak przeciwników na punkcie: " + waypoint.name;
-            autoEnemyInfoText.text = noEnemiesMsg;
-        }
+        System.Random rng = new System.Random();
+        all = all.OrderBy(x => rng.Next()).ToList();
+        return all.Take(count).ToList();
     }
-}
-
-
-
-
-
 }

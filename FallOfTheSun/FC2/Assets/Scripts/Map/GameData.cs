@@ -1,11 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public enum GameMode
-{
-    SinglePlayer,
-    MultiTeam
-}
+public enum GameMode { SinglePlayer, MultiTeam }
 
 public class GameData : MonoBehaviour
 {
@@ -13,75 +9,57 @@ public class GameData : MonoBehaviour
 
     public GameMode CurrentGameMode;
 
-    // === SinglePlayer ===
+    // === GLOBALNY DZIEŃ ===
+    public int currentDay = 0;
+
+    // Flaga: wróciliśmy właśnie z walki i dzień został już zwiększony
+    public bool lastBattleJustEnded = false;
+
+    // SinglePlayer:
     public List<ChessPieceType> playerCharacters = new List<ChessPieceType>();
     public List<ChessPieceType> enemyCharacters = new List<ChessPieceType>();
 
-    // === MultiTeam ===
+    // MultiTeam:
     public List<List<ChessPieceType>> selectedCharacters = new List<List<ChessPieceType>>();
     public bool[] isAIControlledTeams;
 
     [Header("Team Colors")]
     public List<Color> teamColors = new List<Color>();
 
-    // === Bestiary – ustawienia globalne (stan trzyma BestiaryManager) ===
     [Header("Bestiary Settings")]
-    public bool bestiaryBonusesEnabled = true; // przełącznik, gdybyś chciał łatwo wyłączyć bonusy
+    public bool bestiaryBonusesEnabled = true;
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-
-        // ⬇️ KLUCZ: przenieś na root zanim zrobisz DontDestroyOnLoad
-        if (transform.parent != null)
-            transform.SetParent(null);
-
+        if (transform.parent != null) transform.SetParent(null);
         DontDestroyOnLoad(gameObject);
-
-        // domyślka, gdyby nic nie ustawiło
-        if (CurrentGameMode == 0)
-            CurrentGameMode = GameMode.SinglePlayer;
+        if (CurrentGameMode == 0) CurrentGameMode = GameMode.SinglePlayer;
     }
 
-    /// <summary>
-    /// Czy Bestiariusz jest aktywny dla bieżącego trybu gry?
-    /// (Na start: tylko SinglePlayer + globalny przełącznik)
-    /// </summary>
+    public void AdvanceDay(int amount = 1)
+    {
+        currentDay = Mathf.Max(0, currentDay + amount);
+        lastBattleJustEnded = true; // Map wie, że ma „przerobić” nowy dzień
+        Debug.Log($"[GameData] Day advanced to {currentDay}");
+    }
+
     public bool IsBestiaryActiveForCurrentMode()
     {
         return bestiaryBonusesEnabled && CurrentGameMode == GameMode.SinglePlayer;
     }
 
-    /// <summary>
-    /// Wyczyść stan Bestiariusza (np. przy Nowej Grze / powrocie do Main Menu).
-    /// </summary>
     public void ResetBestiary()
     {
         if (BestiaryManager.Instance != null)
-        {
             BestiaryManager.Instance.ResetBestiary();
-        }
     }
 
-    /// <summary>
-    /// Forward: rejestracja zabicia do BestiaryManager (używane w AttackManager).
-    /// </summary>
     public bool TryRegisterKill(ChessPieceType type, int killerTeam, int killedTeam)
     {
-        Debug.Log($"[Bestiary][GameData] Forward to BestiaryManager: type={type}, killer={killerTeam}, killed={killedTeam}");
-
         if (BestiaryManager.Instance == null)
-        {
-            Debug.LogWarning("[Bestiary][GameData] BestiaryManager.Instance is null – cannot forward.");
             return false;
-        }
-
         return BestiaryManager.Instance.RegisterKill(type, killerTeam, killedTeam);
     }
 }
