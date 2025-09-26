@@ -1494,6 +1494,8 @@ MonoBehaviour:
   scrollSensitivity: 2
   minOffsetMagnitude: 2
   maxOffsetMagnitude: 10
+  defaultIsoOffset: {x: 8, y: 8, z: 3}
+  resetOffsetOnSetTarget: 1
 --- !u!1 &385329898
 GameObject:
   m_ObjectHideFlags: 0
@@ -6623,6 +6625,7 @@ GameObject:
   - component: {fileID: 1685910855}
   - component: {fileID: 1685910858}
   - component: {fileID: 1685910859}
+  - component: {fileID: 1685910860}
   m_Layer: 0
   m_Name: ChessBoard
   m_TagString: Untagged
@@ -6782,6 +6785,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   currentTeam: 0
   isAIControlledTeam: 
+--- !u!114 &1685910860
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1685910851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1af8196bc1198a2459f40d57687e591a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1690661790 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6436691035210430360, guid: 1fffb7fcaee76404a8b10b9cce84e78e, type: 3}

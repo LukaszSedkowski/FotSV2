@@ -18,19 +18,29 @@ public class Priestess : ChessPieces
         // Usuñ stare umiejêtnoœci
         abilities.Clear();
 
-        // 1) Leczenie
-        abilities.Add(new Ability(
-            "Heal",
-            null,
-            user =>
-            {
-                var priestess = (Priestess)user;
-                priestess.health = Mathf.Min(priestess.health + priestess.healAmount, priestess.maxHealth);
-                lightDarkness.ChangeLightDarkLevel(-5);
-                ChangeLightDarkHealth(-4);
-                Debug.Log($"{priestess.type} healed for {priestess.healAmount} HP.");
-            }
-        ));
+        // 1) Leczenie obszarowe
+        var healingZone = new PersistentHealZoneAbility(
+    name: "Sanctuary",
+    icon: null,
+    radius: 2,
+    castRange: 6,
+    hpt: 12f,
+    duration: 3
+)
+        {
+            movementCost = 5,
+            ldLevelCost = -2,
+            ldHealthCost = -2
+        };
+
+        healingZone.ExecuteAction = user =>
+        {
+            var board = Object.FindAnyObjectByType<ChessBoard>();
+            if (board == null) { Debug.LogError("[HealZone] ChessBoard not found"); return; }
+            board.BeginTargeting(healingZone, user);
+        };
+
+        abilities.Add(healingZone);
 
         // 2) Regeneracja ruchu
         abilities.Add(new Ability(

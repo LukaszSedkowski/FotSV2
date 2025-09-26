@@ -33,6 +33,7 @@ public class TurnManager : MonoBehaviour
     public void ChangeTurn()
     {
         ApplyLightDarkBonuses();
+        FindAnyObjectByType<ZoneEffectManager>()?.TickAndApply();
         int attempts = numberOfTeams;
 
         do

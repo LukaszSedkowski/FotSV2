@@ -11,6 +11,8 @@ public class HighlightManager : MonoBehaviour
     public bool[,] highlightedTiles;
     public List<Vector2Int> highlightedTilesList = new List<Vector2Int>();
     public List<Node> currentPath = new List<Node>();
+    private HashSet<Vector2Int> damageZoneCells = new();
+    private HashSet<Vector2Int> healZoneCells = new();
     private HighlightType[,] tileHighlightPriority;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -18,9 +20,12 @@ public class HighlightManager : MonoBehaviour
     {
         None = 0,
         Move = 1,
-        LightTile = 3,
-        DarkTile = 4,
-        Path = 2
+        LightTile = 5,
+        DarkTile = 6,
+        Path = 2,
+
+        ZoneDamage = 3,
+        ZoneHeal = 4
     }
     private static readonly Dictionary<HighlightType, Color> highlightColors = new()
     {
@@ -28,7 +33,9 @@ public class HighlightManager : MonoBehaviour
     { HighlightType.Move, Color.yellow },
     { HighlightType.LightTile, new Color(10f, 10f, 10f)}, // lub Color.magenta dynamicznie
     { HighlightType.DarkTile, new Color(-255f, -255f, -255f) }, // lub Color.magenta dynamicznie
-    { HighlightType.Path, Color.blue }
+    { HighlightType.Path, Color.blue },
+    { HighlightType.ZoneDamage, Color.red },
+    { HighlightType.ZoneHeal, Color.green },
     };
     public void Init(TileManager tileManager, PieceManager pieceManager, ChessBoard chessBoard)
     {
@@ -132,6 +139,7 @@ public class HighlightManager : MonoBehaviour
         {
             SetTileHighlight(pos.X, pos.Y, HighlightType.Path);
         }
+        ApplyZones();
     }
 
     public void HighLightPath((int, int) end)
@@ -180,6 +188,7 @@ public class HighlightManager : MonoBehaviour
                     SetTileHighlight(x, y, HighlightType.None);
             }
         }
+        ApplyZones();
     }
     public void SetTileHighlight(int x, int y, HighlightType type)
     {
@@ -197,4 +206,28 @@ public class HighlightManager : MonoBehaviour
             tileHighlightPriority[x, y] = type;
         }
     }
+    public void AddZoneCells(IEnumerable<Vector2Int> cells, bool isDamage)
+    {
+        var set = isDamage ? damageZoneCells : healZoneCells;
+        foreach (var c in cells) set.Add(c);
+        ApplyZones(); // natychmiast przemaluj
+    }
+
+    public void RemoveZoneCells(IEnumerable<Vector2Int> cells, bool isDamage)
+    {
+        var set = isDamage ? damageZoneCells : healZoneCells;
+        foreach (var c in cells) set.Remove(c);
+        ApplyZones();
+    }
+
+    private void ApplyZones()
+    {
+        // Nadaj najwy¿szy priorytet – strefy maj¹ byæ „nad” ruchem/œwiat³em/ciemnoœci¹
+        foreach (var c in damageZoneCells)
+            SetTileHighlight(c.x, c.y, HighlightType.ZoneDamage);
+
+        foreach (var c in healZoneCells)
+            SetTileHighlight(c.x, c.y, HighlightType.ZoneHeal);
+    }
+
 }

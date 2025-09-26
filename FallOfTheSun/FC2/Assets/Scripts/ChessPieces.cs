@@ -83,6 +83,7 @@ public class ChessPieces : MonoBehaviour
     // Metoda do ustawienia statystyk – będzie nadpisywana w podklasach
     protected virtual void SetStats()
     {
+        LDHealth =100;
         health = 100;
         attack=20;
     }

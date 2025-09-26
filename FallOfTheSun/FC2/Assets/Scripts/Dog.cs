@@ -39,19 +39,30 @@ public class Dog : ChessPieces
         };
 
         abilities.Add(howl);
+        
+        //Granat z ogniem
+        var fireZone = new PersistentDamageZoneAbility(
+    name: "Fire Zone",
+    icon: null,
+    radius: 2,
+    castRange: 6,
+    dpt: 12f,            // obra¿enia na turê
+    duration: 3          // liczba tur
+)
+        {
+            movementCost = 5,
+            ldLevelCost = 0,
+            ldHealthCost = 0
+        };
 
-        // 2) Regeneracja ruchu
-        abilities.Add(new Ability(
-            "Regenerate Movement",
-            null,
-            user =>
-            {
-                user.movementRange = user.maxMovementRange;
-                lightDarkness.ChangeLightDarkLevel(-5);
-                ChangeLightDarkHealth(-4);
-                Debug.Log($"{user.type} movement range reset to {user.maxMovementRange}.");
-            }
-        ));
+        fireZone.ExecuteAction = user =>
+        {
+            var board = Object.FindAnyObjectByType<ChessBoard>();
+            if (board == null) { Debug.LogError("[Zone] ChessBoard not found"); return; }
+            board.BeginTargeting(fireZone, user);
+        };
+
+        abilities.Add(fireZone);
         // --- Granat (AoE) ---
         var grenade = new AreaAbility("Grenade", null, radius: 2, castRange: 6, dmg: 25f)
         {
