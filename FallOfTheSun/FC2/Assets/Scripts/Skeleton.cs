@@ -24,11 +24,11 @@ public class Skeleton : ChessPieces
             null,
             user =>
             {
-                var ogre = (Ogre)user;
-                ogre.health = Mathf.Min(ogre.health + ogre.healAmount, ogre.maxHealth);
+                var skeleton = (Skeleton)user;
+                skeleton.health = Mathf.Min(skeleton.health + skeleton.healAmount, skeleton.maxHealth);
                 lightDarkness.ChangeLightDarkLevel(5);
                 ChangeLightDarkHealth(-4);
-                Debug.Log($"{ogre.type} healed for {ogre.healAmount} HP.");
+                Debug.Log($"{skeleton.type} healed for {skeleton.healAmount} HP.");
             }
         ));
 
@@ -50,11 +50,11 @@ public class Skeleton : ChessPieces
             "Strong Strike",
             null,
             user => {
-                var ogre = (Ogre)user;
-                ogre.strongStrikeActive = true;
+                var skeleton = (Skeleton)user;
+                skeleton.strongStrikeActive = true;
                 lightDarkness.ChangeLightDarkLevel(5);
                 ChangeLightDarkHealth(-4);
-                Debug.Log($"{ogre.type} empowered next attack by {ogre.extraDamage} damage.");
+                Debug.Log($"{skeleton.type} empowered next attack by {skeleton.extraDamage} damage.");
             }
         ));
     }

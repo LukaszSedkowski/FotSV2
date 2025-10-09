@@ -245,6 +245,12 @@ public class PieceManager : MonoBehaviour
     public void PositionSinglePiece(int x, int y, bool force = false)
     {
         ChessPieces piece = chessPieces[x, y];
+        if (piece == null)
+        {
+            Debug.LogWarning($"PositionSinglePiece: chessPieces[{x},{y}] == null – pomijam pozycjonowanie.");
+            return;
+        }
+
         piece.currentX = x;
         piece.currentY = y;
 

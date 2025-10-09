@@ -244,6 +244,12 @@ public class ChessBoard : MonoBehaviour
 
         if (!Input.GetMouseButtonDown(0))
             return;
+        if (AnyPieceMoving())
+        {
+            Debug.Log("Ruch w toku — ignoruję kliknięcia do końca animacji.");
+            return;
+        }
+
         Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
         if (_activeTargeting != null)
         {
@@ -502,8 +508,21 @@ private bool IsOnHideoutTile(ChessPieces piece)
 
     private bool IsValid(GameObject[,] grid, int x, int y)
     {
-        return x >= 0 && y >= 0 && x < grid.GetLength(0) && y < grid.GetLength(1) && !tileManager.obstacles[x, y] /*&& highlightedTilesList.Contains(new Vector2Int(x, y))*/;
+        if (x < 0 || y < 0 || x >= grid.GetLength(0) || y >= grid.GetLength(1))
+            return false;
+
+        // stałe przeszkody terenu
+        if (tileManager.obstacles[x, y])
+            return false;
+
+        // NOWOŚĆ: traktuj każde zajęte pole jak przeszkodę
+        // (startowe pole nie jest sprawdzane jako sąsiad, więc to nie blokuje ruchu z miejsca startu)
+        if (pieceManager.chessPieces[x, y] != null)
+            return false;
+
+        return true;
     }
+
 
     private List<Node> ReconstructPath(Node node)
     {
@@ -519,6 +538,11 @@ private bool IsOnHideoutTile(ChessPieces piece)
 
     public bool MoveTo(ChessPieces cp, int targetX, int targetY)
     {
+        if (cp == null || cp.isMoving || AnyPieceMoving())
+        {
+            Debug.Log("Nie mogę zacząć nowego ruchu — poprzedni jeszcze trwa.");
+            return false;
+        }
         if (pieceManager.chessPieces[targetX, targetY] != null)
         {
             Debug.LogWarning($"[MoveTo] Pole ({targetX},{targetY}) zajęte! Ruch anulowany.");
@@ -757,6 +781,13 @@ private bool IsOnHideoutTile(ChessPieces piece)
     {
         _activeTargeting = null;
         _abilityUser = null;
+    }
+    private bool AnyPieceMoving()
+    {
+        foreach (var p in pieceManager.chessPieces)
+            if (p != null && p.isMoving)
+                return true;
+        return false;
     }
 }
 

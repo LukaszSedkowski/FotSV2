@@ -4,6 +4,10 @@ public class Hunter : ChessPieces
 {
     protected override void SetStats()
     {
+        base.SetStats();
+        LDMaxHealth = 100;
+        LDHealth = LDMaxHealth;
+
         movementRange = 10;
         maxMovementRange = 10;
         health = 200;
@@ -13,7 +17,6 @@ public class Hunter : ChessPieces
         attackCost = 5;
         visionRange = (attackRange + maxMovementRange) / 2;
         elementType = ElementType.Light;
-
     }
     public override void TriggerPassiveAbility()
     {

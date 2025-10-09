@@ -4,14 +4,19 @@ public class Priestess : ChessPieces
 {
     protected override void SetStats()
     {
+        base.SetStats();                // USTAWI LDHealth = 100 (z klasy bazowej)
+        LDMaxHealth = 100;              // jawnie
+        LDHealth = LDMaxHealth;      // jawnie
+
         movementRange = 3;
-        maxMovementRange= 3;
+        maxMovementRange = 3;
         health = 80;
         maxHealth = 80;
         attack = 5;
         attackRange = 1;
         attackCost = 1;
         visionRange = (attackRange + maxMovementRange) / 2;
+        elementType = ElementType.Light; // doprecyzowanie
     }
     void Awake()
     {
