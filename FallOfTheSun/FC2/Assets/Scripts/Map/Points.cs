@@ -14,9 +14,15 @@ public class Waypoint : MonoBehaviour
     public int specialDayCount = 0; // Ile dni jeszcze ma być inny kolor
     public List<ChessPieceType> enemyCharacters = new List<ChessPieceType>();
 
+    void Awake()
+    {
+        // Rend może być na tym GO albo na dziecku (SpriteRenderer/MeshRenderer)
+        rend = GetComponent<Renderer>();
+        if (rend == null) rend = GetComponentInChildren<Renderer>();
+    }
+
     void Start()
     {
-        rend = GetComponent<Renderer>();
         UpdateColor();
         DrawLinesToNeighbors();
     }
@@ -36,39 +42,30 @@ public class Waypoint : MonoBehaviour
         }
     }
     public void AssignRandomEnemies(int count)
-{
-    // Wybieramy losowe postacie wrogów
-    List<ChessPieceType> allEnemies = System.Enum.GetValues(typeof(ChessPieceType))
-        .Cast<ChessPieceType>()
-        .Where(t => t != ChessPieceType.None)
-        .ToList();
-
-    System.Random rng = new System.Random();
-    allEnemies = allEnemies.OrderBy(x => rng.Next()).ToList();
-
-    enemyCharacters = allEnemies.Take(count).ToList();
-
-    // Debug info
-    foreach (var enemy in enemyCharacters)
     {
-        Debug.Log("Dodano wroga " + enemy + " do waypointa " + name);
+        var allEnemies = System.Enum.GetValues(typeof(ChessPieceType))
+            .Cast<ChessPieceType>()
+            .Where(t => t != ChessPieceType.None)
+            .OrderBy(_ => UnityEngine.Random.value)
+            .Take(count)
+            .ToList();
+
+        enemyCharacters = allEnemies;
     }
-}
 
-public void DrawLinesToNeighbors()
-{
-    foreach (Waypoint neighbor in neighbors)
+    public void DrawLinesToNeighbors()
     {
-        if (neighbor != null)
+        foreach (Waypoint neighbor in neighbors)
         {
-            GameObject lineObj = new GameObject("LineTo_" + neighbor.name);
-            lineObj.transform.parent = this.transform;
+            if (neighbor == null) continue;
 
-            LineRenderer lr = lineObj.AddComponent<LineRenderer>();
+            var lineObj = new GameObject("LineTo_" + neighbor.name);
+            lineObj.transform.SetParent(transform, false);
+
+            var lr = lineObj.AddComponent<LineRenderer>();
             lr.positionCount = 2;
-            lr.SetPosition(0, this.transform.position);
+            lr.SetPosition(0, transform.position);
             lr.SetPosition(1, neighbor.transform.position);
-
             lr.startWidth = 0.05f;
             lr.endWidth = 0.05f;
             lr.material = new Material(Shader.Find("Sprites/Default"));
@@ -76,23 +73,24 @@ public void DrawLinesToNeighbors()
             lr.endColor = Color.yellow;
         }
     }
-}
 
 
-private void UpdateColor()
-{
-    if (specialDayCount > 0)
+    private void UpdateColor()
     {
-        rend.material.color = specialColor;
-    }
-    else
-    {
-        rend.material.color = defaultColor;
-        enemyCharacters.Clear(); // Usunięcie wrogów
-        isActivated = false;
-        Debug.Log("Usunięto wrogów z waypointa " + name);
+        if (rend == null) return; // <-- guard przeciwko NRE
+
+        if (specialDayCount > 0)
+        {
+            rend.material.color = specialColor;
+        }
+        else
+        {
+            rend.material.color = defaultColor;
+            enemyCharacters.Clear();
+            isActivated = false;
+        }
     }
 }
     
     
-}
+

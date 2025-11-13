@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using TMPro;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -43,12 +44,117 @@ public class PlayerMovement : MonoBehaviour
     // Losowy wybór postaci gracza (tymczasowo)
     private List<ChessPieceType> selectedCharacters;
 
+    [SerializeField] private TMP_Text dayTextTMP;
+
+
     // UI z informacją o wrogach (opcjonalnie)
     public Text enemyInfoText;
     public Text autoEnemyInfoText;
 
+
+    void Awake()
+    {
+        // Na wszelki wypadek – przy powrocie z walki często coś zostaje w paused
+        Time.timeScale = 1f;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private bool Alive(Object o) => o != null; // UnityNull-safe
+
+    private Waypoint FindClosestToPosition(Vector3 pos)
+    {
+        Waypoint[] wps = FindObjectsOfType<Waypoint>();
+        Waypoint best = null;
+        float bestD = float.PositiveInfinity;
+        foreach (var wp in wps)
+        {
+            if (!Alive(wp)) continue;
+            float d = Vector3.Distance(pos, wp.transform.position);
+            if (d < bestD) { bestD = d; best = wp; }
+        }
+        return best;
+    }
+
+    private Waypoint FindClosestUnderMouse(float clickRange = 0.4f)
+    {
+        if (Camera.main == null) return null;
+        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mousePos.z = 0;
+
+        Waypoint[] wps = FindObjectsOfType<Waypoint>();
+        Waypoint best = null;
+        float bestD = float.PositiveInfinity;
+
+        foreach (var wp in wps)
+        {
+            float d = Vector3.Distance(mousePos, wp.transform.position);
+            if (d < bestD) { bestD = d; best = wp; }
+        }
+        return (best != null && bestD <= clickRange) ? best : null;
+    }
+
+    private void UpdateDayUI_Safe()
+    {
+        int day = (GameData.Instance != null) ? GameData.Instance.currentDay : 0;
+        string txt = $"Dzień: {day}";
+
+        if (dayTextTMP) dayTextTMP.text = txt;     // TMP preferowany
+        if (dayText) dayText.text = txt;     // Legacy fallback
+        if (!dayTextTMP && !dayText)
+            Debug.LogError("[MAP] Brak DayText/DayTextTMP – przypnij w Inspektorze!");
+
+    }
+
+    void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene s, LoadSceneMode m)
+    {
+        RebindUI();
+
+        // UI dnia (obsługuje TMP i Legacy)
+        UpdateDayUI_Safe();
+
+        // Reset referencji po powrocie ze sceny walki
+        selectedWaypoint = null;
+        isMoving = false;
+        pathQueue.Clear();
+
+        // Ustal punkt startowy po pozycji gracza (gdy stary waypoint został zniszczony)
+        currentWaypoint = FindClosestToPosition(transform.position);
+
+        // Info + UI dnia
+        DumpState("[OnSceneLoaded]");
+        UpdateDayUI_Safe();
+
+        // Nowy dzień, jeśli flaga po walce
+        if (GameData.Instance != null && GameData.Instance.lastBattleJustEnded)
+        {
+            GameData.Instance.lastBattleJustEnded = false;
+            OnNewDay();
+            UpdateDayUI_Safe();
+        }
+
+        // ZAWSZE na starcie mapy schowaj panele
+        if (sceneChangeButton != null) sceneChangeButton.gameObject.SetActive(false);
+        if (CheckPanel != null) CheckPanel.SetActive(false);
+        if (movePanel != null) movePanel.SetActive(false);  // ⬅️ DODANE
+    }
+
+
+
     private void Start()
     {
+        // A) upewnij się, że czas nie jest zatrzymany po walce
+        Time.timeScale = 1f;
+        UpdateDayUI_Safe();
+
+        RebindUI();
+
+        DumpState("[MAP][Start after Rebind]");
+
         // Losujemy 4 postaci gracza (tymczasowo)
         selectedCharacters = GetRandomCharacters();
 
@@ -63,16 +169,16 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            currentWaypoint = FindClosestWaypoint();
+            currentWaypoint = FindClosestToPosition(transform.position); // <– pozycja gracza, NIE myszki
             if (currentWaypoint != null)
                 transform.position = currentWaypoint.transform.position;
+            else
+                Debug.LogWarning("[MAP] Brak waypointów w scenie – currentWaypoint == null");
         }
 
         // UI: bezpieczne podpięcie
         if (movePanel != null) movePanel.SetActive(false);
         if (CheckPanel != null) CheckPanel.SetActive(false);
-
-        if (moveButton != null) moveButton.onClick.AddListener(OnMoveConfirmed);
 
         if (sceneChangeButton != null)
         {
@@ -85,16 +191,117 @@ public class PlayerMovement : MonoBehaviour
 
         // Start dialogu (opcjonalnie)
         StartCoroutine(DelayedDialogueStart());
+    }
 
-        // Ustaw UI dnia (globalny)
-        UpdateDayUI();
-
-        // Jeśli wróciliśmy właśnie z walki i day++ już został wykonany — przerób "nowy dzień"
-        if (GameData.Instance != null && GameData.Instance.lastBattleJustEnded)
+    private void RebindUI()
+    {
+        // === DAY TEXT / ENEMY INFO (DayTextTMP) ===
+        if (dayText == null || dayTextTMP == null || enemyInfoText == null)
         {
-            GameData.Instance.lastBattleJustEnded = false;
-            OnNewDay(); // tick waypointów + losowanie + UI
+            var go = GameObject.Find("DayTextTMP");
+            if (go != null)
+            {
+                // legacy Text
+                if (dayText == null)
+                    dayText = go.GetComponent<Text>();
+
+                // TMP_Text (jakbyś kiedyś zmienił komponent)
+                if (dayTextTMP == null)
+                    dayTextTMP = go.GetComponent<TMP_Text>();
+
+                // w Twojej scenie EnemyInfoText = ten sam obiekt
+                if (enemyInfoText == null)
+                    enemyInfoText = go.GetComponent<Text>();
+            }
         }
+
+        // === AUTO ENEMY INFO (Text (Legacy) (1)) ===
+        if (autoEnemyInfoText == null)
+        {
+            var go = GameObject.Find("Text (Legacy) (1)");
+            if (go != null)
+                autoEnemyInfoText = go.GetComponent<Text>();
+        }
+
+        // === START POINT (F) ===
+        if (startPoint == null)
+        {
+            var go = GameObject.Find("F");   // Twój początkowy waypoint
+            if (go != null)
+                startPoint = go.GetComponent<Waypoint>();
+        }
+
+        // === RUN PANEL ===
+        if (movePanel == null)
+        {
+            var go = GameObject.Find("RunPanel");
+            if (go != null) movePanel = go;
+        }
+
+        if (moveButton == null)
+        {
+            var go = GameObject.Find("RunButton");
+            if (go != null) moveButton = go.GetComponent<Button>();
+        }
+
+        // === START PANEL / CHECK PANEL ===
+        if (CheckPanel == null)
+        {
+            var go = GameObject.Find("CheckPanel");
+            if (go == null) go = GameObject.Find("StartPanel");
+            if (go != null) CheckPanel = go;
+        }
+
+        if (sceneChangeButton == null)
+        {
+            var go = GameObject.Find("StartButton");
+            if (go != null) sceneChangeButton = go.GetComponent<Button>();
+        }
+
+        // === INFO BUTTON ===
+        if (infoButton == null)
+        {
+            var go = GameObject.Find("InfoButton");
+            if (go != null) infoButton = go.GetComponent<Button>();
+        }
+
+        // === LISTENERY ===
+        if (moveButton != null)
+        {
+            moveButton.onClick.RemoveListener(OnMoveConfirmed);
+            moveButton.onClick.AddListener(OnMoveConfirmed);
+        }
+
+        if (sceneChangeButton != null)
+        {
+            sceneChangeButton.onClick.RemoveListener(ChangeScene);
+            sceneChangeButton.onClick.AddListener(ChangeScene);
+        }
+
+        if (infoButton != null)
+        {
+            infoButton.onClick.RemoveAllListeners();
+            infoButton.onClick.AddListener(ShowEnemiesAtSelectedWaypoint);
+        }
+
+        // === STAN POCZĄTKOWY UI ===
+        if (movePanel != null) movePanel.SetActive(false);
+        if (CheckPanel != null) CheckPanel.SetActive(false);
+        if (sceneChangeButton != null) sceneChangeButton.gameObject.SetActive(false);
+
+        DumpState("[MAP][RebindUI]");
+    }
+
+
+
+    private void DumpState(string tag)
+    {
+        Debug.Log($"{tag}\n" +
+                  $"dayText={(dayText ? dayText.name : "NULL")}, " +
+                  $"movePanel={(movePanel ? movePanel.name : "NULL")}, " +
+                  $"CheckPanel={(CheckPanel ? CheckPanel.name : "NULL")}, " +
+                  $"StartBtn={(sceneChangeButton ? sceneChangeButton.name : "NULL")}, " +
+                  $"InfoBtn={(infoButton ? infoButton.name : "NULL")}");
     }
 
     private IEnumerator DelayedDialogueStart()
@@ -106,6 +313,12 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            Debug.Log("[MAP][Hotkey] R pressed -> OnMoveConfirmed()");
+            OnMoveConfirmed();
+        }
+
         // Debug speed
         if (Input.GetKeyDown(KeyCode.Equals))
             speed = Mathf.Clamp(speed + 1f, minSpeed, maxSpeed);
@@ -125,16 +338,25 @@ public class PlayerMovement : MonoBehaviour
         {
             if (!EventSystem.current || !EventSystem.current.IsPointerOverGameObject())
             {
-                Waypoint target = FindClosestWaypoint();
-
+                Waypoint target = FindClosestUnderMouse(); // <– pod kursorem
                 if (target != null && target != currentWaypoint)
                 {
                     selectedWaypoint = target;
-                    if (movePanel != null) movePanel.SetActive(true); // pokaż panel potwierdzenia
+                    Debug.Log($"[MAP] Selected wp name={target.name}");
+
+                    if (movePanel == null)
+                    {
+                        Debug.LogError("[MAP] movePanel == NULL przy kliknięciu!");
+                    }
+                    else
+                    {
+                        Debug.Log($"[MAP] movePanel activeSelf={movePanel.activeSelf}, inHierarchy={movePanel.activeInHierarchy}, parentActive={movePanel.transform.parent.gameObject.activeInHierarchy}");
+                        movePanel.SetActive(true);
+                    }
                 }
                 else
                 {
-                    if (movePanel != null) movePanel.SetActive(false);
+                    if (movePanel) movePanel.SetActive(false);
                 }
             }
         }
@@ -173,6 +395,7 @@ public class PlayerMovement : MonoBehaviour
             CheckPanel.SetActive(false);
     }
 
+
     // === Nowy "pipeline" nowego dnia ===
     private void OnNewDay()
     {
@@ -185,16 +408,8 @@ public class PlayerMovement : MonoBehaviour
         ActivateRandomWaypoints(2, 1);
 
         // 3) UI
-        UpdateDayUI();
+        UpdateDayUI_Safe();
     }
-
-    // === UI dnia: globalny dzień z GameData ===
-    private void UpdateDayUI()
-    {
-        if (dayText != null)
-            dayText.text = "Dzień: " + (GameData.Instance != null ? GameData.Instance.currentDay.ToString() : "0");
-    }
-
     // === Właściwe przejście do sceny walki ===
     private void ChangeScene()
     {
@@ -220,22 +435,41 @@ public class PlayerMovement : MonoBehaviour
     // === Potwierdzenie ruchu ===
     private void OnMoveConfirmed()
     {
-        if (selectedWaypoint == null) return;
+        Debug.Log($"[MAP] OnMoveConfirmed() sel={(Alive(selectedWaypoint) ? selectedWaypoint.name : "NULL")}, cur={(Alive(currentWaypoint) ? currentWaypoint.name : "NULL")}");
 
-        if (movePanel != null) movePanel.SetActive(false);
-
-        Waypoint start = pathQueue.Count > 0 ? pathQueue.Peek() : currentWaypoint;
-        pathQueue.Clear();
-        List<Waypoint> path = FindPathAStar(start, selectedWaypoint);
-
-        if (path.Count > 0)
+        if (!Alive(selectedWaypoint))
         {
-            foreach (var wp in path)
-                pathQueue.Enqueue(wp);
-
-            isMoving = true;
+            Debug.Log("[MAP] Run clicked but no target.");
+            return;
         }
+
+        // Po powrocie z walki currentWaypoint mógł zniknąć — ustal pozycją gracza
+        if (!Alive(currentWaypoint))
+            currentWaypoint = FindClosestToPosition(transform.position);
+
+        if (!Alive(currentWaypoint))
+        {
+            Debug.LogError("[MAP] currentWaypoint still NULL – nie mogę policzyć ścieżki.");
+            return;
+        }
+
+        if (movePanel) movePanel.SetActive(false);
+        Debug.Log($"[MAP] Run confirmed -> moving to {selectedWaypoint.name}");
+
+        var start = currentWaypoint;
+        pathQueue.Clear();
+
+        var path = FindPathAStar(start, selectedWaypoint);
+        if (path.Count == 0)
+        {
+            Debug.LogWarning("[MAP] Brak ścieżki.");
+            return;
+        }
+
+        foreach (var wp in path) pathQueue.Enqueue(wp);
+        isMoving = true;
     }
+
 
     // === Ruch bohatera pomiędzy waypointami ===
     private void MoveToNextWaypoint()
@@ -332,6 +566,14 @@ public class PlayerMovement : MonoBehaviour
     // === A* po grafie waypointów ===
     private List<Waypoint> FindPathAStar(Waypoint start, Waypoint goal)
     {
+        var result = new List<Waypoint>();
+        if (!Alive(start) || !Alive(goal))
+            return result;
+        if (start == goal)
+        {
+            result.Add(goal);
+            return result;
+        }
         Dictionary<Waypoint, Waypoint> cameFrom = new Dictionary<Waypoint, Waypoint>();
         Dictionary<Waypoint, float> costSoFar = new Dictionary<Waypoint, float>();
         PriorityQueue<Waypoint> frontier = new PriorityQueue<Waypoint>();
@@ -424,6 +666,18 @@ public class PlayerMovement : MonoBehaviour
                 autoEnemyInfoText.text = msg;
             }
         }
+    }
+
+    public void OnRunClicked()
+    {
+        Debug.Log("[MAP] RUN click");
+        OnMoveConfirmed();   // Twoja istniejąca logika ruszania
+    }
+
+    public void OnStartClicked()
+    {
+        Debug.Log("[MAP] START click");
+        ChangeScene();       // Twoja istniejąca logika startu walki
     }
 
     // === Utility ===
