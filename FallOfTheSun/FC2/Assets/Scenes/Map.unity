@@ -1283,12 +1283,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: -10
-  m_Sprite: {fileID: 21300000, guid: 163e9a13d4df11645b566a63f278bb12, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 2d913b63b2cd4c54ab8b3621dd403ee1, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 14.94, y: 8.59}
+  m_Size: {x: 15.36, y: 8.64}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -2225,13 +2225,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5593b27b7f15c1444ac37acc8b8f22f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  uiRoot: {fileID: 0}
-  nameDayText: DayTextTMP
-  nameRunPanel: RunPanel
-  nameRunButton: RunButton
-  nameStartPanel: StartPanel
-  nameStartButton: StartButton
-  nameInfoButton: InfoButton
   speed: 5
   dayText: {fileID: 436354040}
   movePanel: {fileID: 1656122914}

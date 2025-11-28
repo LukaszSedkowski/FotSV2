@@ -1,8 +1,5 @@
 using System.Collections.Generic;
-using UnityEditor.ShaderGraph;
 using UnityEngine;
-using static UnityEditor.PlayerSettings;
-
 public class HighlightManager : MonoBehaviour
 {
     private TileManager tileManager;
