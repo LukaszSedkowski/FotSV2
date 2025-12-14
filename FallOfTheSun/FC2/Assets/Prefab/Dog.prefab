@@ -32,7 +32,8 @@ Transform:
   m_LocalPosition: {x: -14.293611, y: -9.135873, z: 19.985384}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 656346736189326015}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &8323563558943455849
@@ -50,7 +51,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4717602979411497372}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -121,13 +122,90 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db98ad4277e9d45419a78823417cc63a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fogOfWarManager: {fileID: 0}
+  lightDarkness: {fileID: 0}
+  pieceManager: {fileID: 0}
+  turnManager: {fileID: 0}
+  abilities: []
+  isMoving: 0
   team: 0
   currentX: 0
   currentY: 0
   type: 3
+  elementType: 0
   movementRange: 0
   maxMovementRange: 0
   health: 0
+  maxHealth: 0
+  LDMaxHealth: 100
+  LDHealth: 100
   attack: 0
   attackRange: 0
   attackCost: 0
+  groundOffset: 0.5
+  visionRange: 5
+  healAmount: 20
+  extraDamage: 30
+  hasPassiveAbility: 0
+--- !u!1001 &1049750602465158484
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7038220159612294929}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 2091ca089b71410439a38200074512d7, type: 3}
+      propertyPath: m_Name
+      value: model_Animation_Walking_withSkin
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2091ca089b71410439a38200074512d7, type: 3}
+--- !u!4 &656346736189326015 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
+  m_PrefabInstance: {fileID: 1049750602465158484}
+  m_PrefabAsset: {fileID: 0}

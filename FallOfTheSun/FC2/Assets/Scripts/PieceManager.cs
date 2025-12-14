@@ -9,7 +9,7 @@ public class PieceManager : MonoBehaviour
         { ChessPieceType.Hunter, 1.5f },
         { ChessPieceType.Priestess, 1.5f },
         { ChessPieceType.Skeleton, 1.5f },
-        { ChessPieceType.Dog, 1f },
+        { ChessPieceType.Dog, 0.2f },
         { ChessPieceType.Knight, 1f },
         { ChessPieceType.Werewolf, 1f },
         { ChessPieceType.Vampir, 1f }
