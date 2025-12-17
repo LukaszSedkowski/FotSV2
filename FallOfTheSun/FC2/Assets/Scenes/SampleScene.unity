@@ -193,6 +193,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  placementOffset: 0
   visionRange: 3
   healAmount: 20
   extraDamage: 30
@@ -1134,6 +1135,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  placementOffset: 0
   visionRange: 3
   healAmount: 20
   extraDamage: 30
@@ -2645,6 +2647,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  placementOffset: 0
   visionRange: 3
   healAmount: 20
   extraDamage: 30
@@ -3117,6 +3120,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  placementOffset: 0
   visionRange: 3
   healAmount: 20
   extraDamage: 30
@@ -4424,7 +4428,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -2
+      value: -1.2
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 2091ca089b71410439a38200074512d7, type: 3}
       propertyPath: m_LocalPosition.z
@@ -6418,6 +6422,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  placementOffset: 0
   visionRange: 3
   healAmount: 20
   extraDamage: 30
@@ -7017,6 +7022,7 @@ MonoBehaviour:
   attackRange: 0
   attackCost: 0
   groundOffset: 0.5
+  placementOffset: 0
   visionRange: 3
   healAmount: 20
   extraDamage: 30
@@ -9006,7 +9012,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2881027044177476934, guid: 1fffb7fcaee76404a8b10b9cce84e78e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -29.718468
+      value: -20.71847
       objectReference: {fileID: 0}
     - target: {fileID: 2881027044177476934, guid: 1fffb7fcaee76404a8b10b9cce84e78e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -9062,7 +9068,8 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: -3539299717560423986, guid: 1fffb7fcaee76404a8b10b9cce84e78e, type: 3}
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 6395745790761418547, guid: 1fffb7fcaee76404a8b10b9cce84e78e, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 6436691035210430360, guid: 1fffb7fcaee76404a8b10b9cce84e78e, type: 3}
@@ -9379,7 +9386,8 @@ PrefabInstance:
     m_RemovedComponents:
     - {fileID: 4482690260177948032, guid: e78073d4064ee8944a9f4f76a2183014, type: 3}
     - {fileID: 4887135407970906879, guid: e78073d4064ee8944a9f4f76a2183014, type: 3}
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 431275903909998096, guid: e78073d4064ee8944a9f4f76a2183014, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 8824760871250351461, guid: e78073d4064ee8944a9f4f76a2183014, type: 3}
       insertIndex: -1

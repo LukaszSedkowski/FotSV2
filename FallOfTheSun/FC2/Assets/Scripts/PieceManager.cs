@@ -5,14 +5,26 @@ public class PieceManager : MonoBehaviour
 {
     private static readonly Dictionary<ChessPieceType, float> groundOffsets = new Dictionary<ChessPieceType, float>
     {
-        { ChessPieceType.Ogre, 1.5f },
-        { ChessPieceType.Hunter, 1.5f },
-        { ChessPieceType.Priestess, 1.5f },
-        { ChessPieceType.Skeleton, 1.5f },
+        { ChessPieceType.Ogre, 0.5f },
+        { ChessPieceType.Hunter, 1.58f },
+        { ChessPieceType.Priestess, 0.7f },
+        { ChessPieceType.Skeleton, 0.5f },
+        { ChessPieceType.Dog, 1.7f },
+        { ChessPieceType.Knight, 0.5f },
+        { ChessPieceType.Werewolf, 0.7f },
+        { ChessPieceType.Vampir, 0.5f }
+    };
+
+    private static readonly Dictionary<ChessPieceType, float> placementOffsets = new Dictionary<ChessPieceType, float>
+    {
+        { ChessPieceType.Ogre, -0.1f },
+        { ChessPieceType.Hunter, -0.3f },
+        { ChessPieceType.Priestess, 0.2f },
+        { ChessPieceType.Skeleton, 0.3f },
         { ChessPieceType.Dog, 0.2f },
-        { ChessPieceType.Knight, 1f },
-        { ChessPieceType.Werewolf, 1f },
-        { ChessPieceType.Vampir, 1f }
+        { ChessPieceType.Knight, 0f },
+        { ChessPieceType.Werewolf, 0f },
+        { ChessPieceType.Vampir, 0.1f }
     };
 
     private static readonly Vector2Int[] CornerOffsets = new Vector2Int[]
@@ -220,6 +232,10 @@ public class PieceManager : MonoBehaviour
             cp.groundOffset = offset;
         else
             cp.groundOffset = 0.5f;
+        if (placementOffsets.TryGetValue(type, out float placeOffset))
+            cp.placementOffset = placeOffset;
+        else
+            cp.placementOffset = 0f;
 
         cp.fogOfWarManager = fogOfWarManager;
         return cp;
@@ -261,6 +277,10 @@ public class PieceManager : MonoBehaviour
         Renderer[] renderers = piece.GetComponentsInChildren<Renderer>();
         if (renderers.Length > 0)
         {
+            foreach (var r in renderers)
+            {
+                Debug.Log($"[Bounds] {piece.name} -> {r.name} minY={r.bounds.min.y} maxY={r.bounds.max.y}");
+            }
             Bounds combinedBounds = renderers[0].bounds;
             for (int i = 1; i < renderers.Length; i++)
             {
@@ -268,7 +288,7 @@ public class PieceManager : MonoBehaviour
             }
             float minY = combinedBounds.min.y;
             float offset = tileHeight - minY;
-            float smallLift = 0.5f;
+            float smallLift = piece.placementOffset;
             float finalY = offset + smallLift;
             piece.transform.position = new Vector3(x * tileManager.tileSize, finalY, y * tileManager.tileSize);
             Debug.Log($"PositionSinglePiece: Piece {piece.name} at tile({x},{y}): tileHeight={tileHeight}, bounds.min.y={minY}, offset={offset}, finalY={finalY}");
